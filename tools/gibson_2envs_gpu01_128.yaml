@@ -1,0 +1,15 @@
+envs:  # Note that values must be string!
+  MKL_NUM_THREADS: '1'
+
+# You can launch multiple simulators on multiple GPUs. They will be automatically load-balanced.
+
+generator_cmds:
+  space2: [
+    'python -m rmp_nav.simulation.gibson_sim_server --scene_id=space2 --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=0 --bind=False',
+    'python -m rmp_nav.simulation.gibson_sim_server --scene_id=space2 --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=0 --bind=False',
+  ],
+
+  space8: [
+    'python -m rmp_nav.simulation.gibson_sim_server --scene_id=space8 --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=1 --bind=False',
+    'python -m rmp_nav.simulation.gibson_sim_server --scene_id=space8 --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=1 --bind=False',
+  ]

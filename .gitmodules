@@ -1,0 +1,3 @@
+[submodule "third_party/range_libc"]
+	path = third_party/range_libc
+	url = https://github.com/xymeng/range_libc.git

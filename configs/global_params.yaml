@@ -1,0 +1,2 @@
+persistent_servers:
+    all: ["tcp://localhost:5000"]

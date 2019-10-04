@@ -1,0 +1,47 @@
+obstacle_ddx_align_with_normal: False
+
+combined_accel_gain: &combined_accel_gain 3.0
+
+head_combined_accel_gain: &head_combined_accel_gain 0.5
+head_obstacle_gain: &head_obstacle_gain 25.0
+
+heading_alignment_gain: 1.5
+heading_alignment_damping: 5.0
+heading_alignment_damping2: 0.0
+heading_alignment_damping3: 0.0
+heading_alignment_metric_scale: 1.0
+
+solver_params: "{
+   'obstacle_repel_gain':0.2,
+   'obstacle_damping':0.2,
+   'goal_attraction_gain': 0.18,
+   'goal_damping': 0.2,
+   'dist_penalty_coeff': 9.0,
+   'dist_penalty_offset':0.69-0.2,
+   'dist_penalty_multiplier':1.0 / 16,
+}
+"
+
+rmp_config: &rmp_cfg {}
+
+
+length: 0.16
+width: 0.115
+steer_range: [-0.36, 0.36]
+steer_speed_limit: [-3.2, 3.2]  # Max steering speed. Refer to vesc.yaml
+
+
+control_points:
+  x, y, is_boundary, affected_by_obstacle, affected_by_goal, normal, obstacle_accel_gain, goal_accel_gain, combined_accel_gain, obstacle_metric_scale, goal_metric_scale, rmp_config:
+    - [0.18, 0.0, True, True, True, null, *head_obstacle_gain, 1.0, *head_combined_accel_gain, 1.0, 1.0, *rmp_cfg]
+    - [0.13, 0.08, True, True, True, [0.0, 1.0], 1.0, 1.0, *combined_accel_gain, 1.0, 1.0, *rmp_cfg]
+    - [0.065, 0.08, True, True, False, [0.0, 1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [0.0, 0.08, True, True, False, [0.0, 1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [-0.065, 0.08, True, True, False, [0.0, 1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [-0.13, 0.08, True, False, False, [0.0, 1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [-0.13, 0.0, True, False, False, null, 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [-0.13, -0.08, True, False, False, [0.0, -1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [-0.065, -0.08, True, True, False, [0.0, -1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [0.0, -0.08, True, True, False, [0.0, -1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [0.065, -0.08, True, True, False, [0.0, -1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [0.13, -0.08, True, True, True, [0.0, -1.0], 1.0, 1.0, *combined_accel_gain, 1.0, 1.0, *rmp_cfg]

@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+
+
+/.idea/
+
+/models/
+/rmp_nav/gibson
+
+/cmake-build-*/
+
+*.so
