@@ -95,6 +95,22 @@ def get_project_root():
     return os.path.normpath(os.path.dirname(__file__) + '/../../')
 
 
+def get_gibson_asset_dir():
+    return os.path.join(get_project_root(), 'rmp_nav', 'gibson', 'assets', 'dataset')
+
+
+def get_data_dir():
+    return os.path.join(get_project_root(), 'data')
+
+
+def get_config_dir():
+    return os.path.join(get_project_root(), 'configs')
+
+
+def get_model_dir():
+    return os.path.join(get_project_root(), 'models')
+
+
 def cairo_argb_to_opencv_rgb(arr):
     argb = arr.view(dtype=np.dtype((np.uint32, {'a': (np.uint8, 3),
                                                 'r': (np.uint8, 2),
