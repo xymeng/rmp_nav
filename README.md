@@ -1,9 +1,22 @@
 # RMP Navigation
 
-This repository contains related code for navigation with RMP controllers. RMP is a joint
-representation of environmental geometry and robot dynamics. It produces complex local reactive
-behaviors that allows a robot to robustly navigate with the presence of obstacles. We also show that
-an image-based RMP controller can be learned with a neural network.
+This repository contains related code for the following two papers:
+
+1. Neural Autonomous Navigation with Riemannian Motion Policy.
+
+   *Xiangyun Meng, Nathan Ratliff, Yu Xiang and Dieter Fox. ICRA 2019*
+2. Scaling Local Control to Large Scale Topological Navigation.
+
+   *Xiangyun Meng, Nathan Ratliff, Yu Xiang and Dieter Fox. ICRA 2020*
+ 
+ 
+The base code is written for paper 1. For paper 2, please check out the subdirectory [topological_nav](topological_nav).
+
+## Neural Autonomous Navigation with Riemannian Motion Policy 
+
+This code implements a local reactive controller using RMP. RMP is a joint representation of environmental geometry and
+robot dynamics. It produces complex local reactive behaviors that allows a robot to robustly navigate with the presence
+of obstacles. We also show that an image-based RMP controller can be learned with a neural network.
 
 Click the image to see the video:
 
