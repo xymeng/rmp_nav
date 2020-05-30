@@ -6,12 +6,10 @@ This repository contains related code for
 
 ## Preparation
 - Follow [README](../README.md) to set up the base code.
-- Download the [datasets and models](https://drive.google.com/file/d/1iCjMLjBsL9_fSRC8qVAsj0BoKzPm8gHy/view?usp=sharing).
+- Download the [datasets and models](https://drive.google.com/file/d/1qpVgmJUbMa8z3pOIpTDs4qHlc3mqBZXD/view?usp=sharing).
   Put it inside the source root and run `tar xf topo_nav.tar.gz`.
   
 ## Run the code
-Currently we provide you with a license-free environment (space8) for you to test.
-
 First launch the Gibson simulation server:
 
 ```

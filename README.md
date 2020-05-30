@@ -108,7 +108,8 @@ We provide an example neural agent ```gibson12v2_240fov_minirccar_z0228_fisheye6
 agent is able to avoid obstacles reactively with a monocular RGB camera. Since it requires images
 as input, we need to launch the corresponding gibson environment first:
 ```
-python tools/launch_sim_server_load_balancer_multi.py gibson_space2_gpu0_128.yaml 5000
+cd tools
+python launch_sim_server_load_balancer_multi.py gibson_space2_gpu0_128.yaml 5000
 ```
 
 ```gibson_space2_gpu0_128.yaml``` contains configurations of which gibson environments to launch.
