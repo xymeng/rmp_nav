@@ -11,7 +11,7 @@ from topological_nav.reachability import model_factory
 from topological_nav.tools.eval_traj_following_common import EvaluatorReachability
 
 
-gflags.DEFINE_string('env', 'house31', '')
+gflags.DEFINE_string('env', 'space8', '')
 gflags.DEFINE_string('model', 'model_12env_v2_future_pair_proximity_z0228', '')
 gflags.DEFINE_boolean('dry_run', False, '')
 gflags.DEFINE_float('sparsify_thres', 0.99, '')
@@ -45,7 +45,14 @@ common_kwargs = {
 @register
 def house31(**kwargs):
     return DatasetVisualGibson(
-        hd5_files=glob.glob(get_data_dir() + '/minirccar_agent_local_240fov_house31_farwp_v2/train_1.hd5'),
+        hd5_files=glob.glob(get_data_dir() + '/minirccar_agent_local_240fov_house31_farwp_v2/train_*.hd5'),
+        **kwargs)
+
+
+@register
+def space8(**kwargs):
+    return DatasetVisualGibson(
+        hd5_files=glob.glob(get_data_dir() + '/minirccar_agent_local_240fov_space8_farwp_v2/train_*.hd5'),
         **kwargs)
 
 
