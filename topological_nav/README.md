@@ -4,6 +4,8 @@ This repository contains related code for
 - Building sparse topological maps from dense trajectories
 - Performing visual topological navigation in Gibson environments
 
+See the [supplementary video](https://homes.cs.washington.edu/~xiangyun/topological_nav/videos/submission.mp4).
+
 ## Preparation
 - Follow [README](../README.md) to set up the base code.
 - Download the [datasets and models](https://drive.google.com/file/d/1qpVgmJUbMa8z3pOIpTDs4qHlc3mqBZXD/view?usp=sharing).
@@ -33,4 +35,26 @@ python topological_nav/tools/eval_traj_following.py
 ```
 
 ### Topological navigation
-Code being cleaned up. Coming soon!
+#### Build a topological map
+
+We provide a trajectory dataset `data/minirccar_agent_local_240fov_space8_pairwise_destination`, which contains 90
+trajectories in `space8`.
+To build the map, run the following commands
+```
+cd topological_nav/tools
+bash build_graph.sh space8_pairwise_destination ../nav_graphs/space8/graph_config.yaml
+```
+
+This may take a while. After it completes, the map will be stored in `topological_nav/nav_graphs/space8/graph.pickle`.
+In that directory you can also check out `graph.svg` which visualizes the map.
+
+#### Planning
+
+Once you have built the map, you can try out the planning part. You can reproduce the "resolve ambiguity" part of the
+[supplementary video](https://homes.cs.washington.edu/~xiangyun/topological_nav/videos/submission.mp4) by running the
+following commands:
+
+```
+cd topological_nav/tools
+python eval_planning.py --model=model_12env_v2_future_pair_proximity_z0228 --graph_save_file=../nav_graphs/space8/graph.pickle --task=plan_to_dest_single --start_pos="10,0" --start_heading="30" --goal="(128,0,0)" --online_planning --visualize --seed=54321 --model_param="search_thres=0.7"
+```
