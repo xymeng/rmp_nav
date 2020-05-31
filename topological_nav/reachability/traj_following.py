@@ -1,6 +1,8 @@
+import cv2
 import numpy as np
 import torch
 from rmp_nav.common.utils import pprint_dict
+from rmp_nav.common.image_combiner import VStack
 
 
 class TrajectoryFollower(object):
@@ -211,6 +213,12 @@ class TrajectoryFollowerMultiFrameDstBothProximity(TrajectoryFollower):
     def reset(self):
         super(TrajectoryFollowerMultiFrameDstBothProximity, self).reset()
         self.last_visited_anchor = None
+
+    def make_vis_img(self, **kwargs):
+        target_imgs = self.target_seq.data.cpu().numpy()  # N x C x H x W
+        target_img = np.concatenate(target_imgs, axis=2).transpose(1, 2, 0)  # H x (N x W) x C
+        ob = self.ob.transpose(1, 2, 0)
+        return cv2.cvtColor((VStack(ob, target_img) * 255).astype(np.uint8), cv2.COLOR_RGB2BGR)
 
     def _compute_wp(self, ob, anchor_idx):
         # These are used for visualization.

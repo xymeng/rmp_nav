@@ -1,0 +1,15 @@
+model: model_12env_v2_future_pair_proximity_z0228
+
+graph_kwargs:
+  sparsify_thres: 0.99
+  edge_add_thres: 0.99
+  delta_tw: 2
+  reuse_thres: 0.99
+  reuse_edge_prob_mode: actual
+  reuse_terminal_nodes: True
+  reuse_start_nodes: True
+  reuse_goal_nodes: False
+
+builder_kwargs:
+  sanitize: False
+  min_length: 0
