@@ -400,7 +400,7 @@ if __name__ == '__main__':
     gflags.DEFINE_float('start_heading', None, 'In degrees. Used for plan_to_dest_single task.')
     gflags.DEFINE_float('graph_subset_ratio', 1.0, 'Use this subset of trajectories of the graph.')
     gflags.DEFINE_boolean('jitter_start', False, 'Jitter the starting position and heading.')
-    gflags.DEFINE_boolean('shortcut_bad_path', True,
+    gflags.DEFINE_boolean('shortcut_bad_path', False,
                           'True to treat a badly planned path as failure.')
     gflags.DEFINE_boolean('online_planning', False, '')
     gflags.DEFINE_integer('replan_dead_reckon_count', 5, 'Used for online planning.')
