@@ -13,6 +13,7 @@ from . import networks
 from . import train_fixture
 from . import args
 from .args import g
+from rmp_nav.common.utils import get_gibson_asset_dir
 
 
 def make_nets(specs, device):
@@ -82,7 +83,7 @@ if __name__ == '__main__':
             'input_resolution': g.resolution
         }),
         hd5_files=glob.glob(os.path.join(g.dataset_dir, dataset_files)),
-        assets_dir=os.path.dirname(__file__) + '/../../../gibson/assets/dataset',
+        assets_dir=get_gibson_asset_dir(),
         camera_pos=(g.camera_x, g.camera_y),
         camera_z=g.camera_z,
         h_fov=np.deg2rad(g.hfov),

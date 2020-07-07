@@ -1,0 +1,52 @@
+img_pair_encoder:
+    class: ImagePairEncoderV2
+    net_kwargs:
+        init_scale: 1.0
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+conv_encoder:
+    class: ConvEncoder
+    net_kwargs:
+        kernel_size: 11
+        output_dim: 1024
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+wp_regressor:
+     class: WaypointRegressor
+     net_kwargs:
+         input_dim: 1024
+         init_scale: 1.0
+     opt: Adam
+     opt_kwargs:
+         lr: 3.0e-4
+         eps: 1.0e-5
+
+
+proximity_regressor:
+    class: ProximityRegressor
+    net_kwargs:
+        input_dim: 1024
+        init_scale: 1.0
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+heading_diff_regressor:
+    class: HeadingDiffRegressor
+    net_kwargs:
+        input_dim: 1024
+        init_scale: 1.0
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
