@@ -1,7 +1,20 @@
 ## Train the Controller
 
+First launch the simulators
 ```
-cd experiments
+cd tools
+python launch_sim_server_load_balancer_multi.py gibson_12envs_gpu01_128.yaml 5000
+```
+Note that the simulation environments can take a lot of GPU memory. The above configuration uses two GPUs. 
+If you notice out of memory error and have more than two GPUs, you can edit the yaml file to change
+the GPU location of each environment.
+
+
+Then run the following command to train the controller.
+
+
+```
+cd ${RMP_NAV_ROOT}/topological_nav/controller/experiments
 
 OMP_NUM_THREADS=2 bash run_12env.sh \
 12env/multiframe_dst/future/pair/pred_proximity/pred_heading_diff/conv \
@@ -16,3 +29,5 @@ gtwp-normwp-farwp-jitter-weightedloss-checkwp-nf6-interval3-dmax3 \
 --persistent_server_cfg ../../../configs/gibson_persistent_servers/local.yaml \
 --proximity_label --heading_diff_label
 ```
+
+The model will be stored in `experiments/12env/multiframe_dst/future/pair/pred_proximity/pred_heading_diff/conv/`

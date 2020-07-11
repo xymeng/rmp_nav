@@ -58,3 +58,13 @@ following commands:
 cd topological_nav/tools
 python eval_planning.py --model=model_12env_v2_future_pair_proximity_z0228 --graph_save_file=../nav_graphs/space8/graph.pickle --task=plan_to_dest_single --start_pos="10,0" --start_heading="30" --goal="(128,0,0)" --online_planning --visualize --seed=54321 --model_param="search_thres=0.7"
 ```
+
+## Train the models
+Download the [simulation environments](https://drive.google.com/file/d/1O-JzLFVjGfJ-SnvW9jMh6DqcBpI6anj1/view?usp=sharing).
+Put the simulation environments inside `rmp_nav/gibson/assets/dataset/`.
+You should have directories like `rmp_nav/gibson/assets/dataset/house24`.
+
+Download the [trajectory dataset](https://drive.google.com/file/d/11QAtu7Z1HrF5RUCxCc1xO756pPyEiIqR/view?usp=sharing).
+Put the dataset inside `data/`. You should have a directory structure like `data/minirccar_agent_local_240fov_12env_v2_farwp/train_1.hd5`.
+
+To train the controller, see [controller/README.md](controller/README.md).
