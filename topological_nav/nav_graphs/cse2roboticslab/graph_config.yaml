@@ -1,0 +1,20 @@
+model: model_12env_v2_future_pair_proximity_z0228
+
+data_source: real
+data_dir: ../../data/cse2roboticslab/traces/
+map: cse2roboticslab
+
+
+graph_kwargs:
+  sparsify_thres: 0.98
+  edge_add_thres: 0.98
+  delta_tw: 2
+  reuse_thres: 0.98
+  reuse_edge_prob_mode: actual
+  reuse_terminal_nodes: False
+  reuse_start_nodes: False
+  reuse_goal_nodes: False
+
+builder_kwargs:
+  sanitize: False
+  min_length: 0
