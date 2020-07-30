@@ -1,10 +1,8 @@
 import time
 import numpy as np
 import torch
-import torch.nn.functional as F
-from torch.nn.functional import binary_cross_entropy_with_logits, kl_div, cross_entropy, relu
-from torch.distributions import Categorical
-from torch.utils.data import DataLoader, WeightedRandomSampler
+from torch.nn.functional import binary_cross_entropy_with_logits
+from torch.utils.data import DataLoader, RandomSampler
 from rmp_nav.common.utils import save_model, load_model, module_grad_stats
 import tabulate
 import os
@@ -99,7 +97,8 @@ def train_multiframedst(nets, net_opts, dataset, vis, global_args):
     while True:
         print('===== epoch %d =====' % epoch)
 
-        sampler = WeightedRandomSampler([1.0] * len(dataset), n_samples)
+        sampler = RandomSampler(dataset, True, n_samples)
+
         loader = DataLoader(dataset,
                             batch_size=batch_size,
                             sampler=sampler,
