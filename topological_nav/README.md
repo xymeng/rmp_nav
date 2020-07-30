@@ -35,7 +35,7 @@ python topological_nav/tools/eval_traj_following.py
 ```
 
 ### Topological navigation
-#### Build a topological map
+#### Build a topological map (simulation)
 
 We provide a trajectory dataset `data/minirccar_agent_local_240fov_space8_pairwise_destination`, which contains 90
 trajectories in `space8`.
@@ -47,6 +47,17 @@ bash build_graph.sh space8_pairwise_destination ../nav_graphs/space8/graph_confi
 
 This may take a while. After it completes, the map will be stored in `topological_nav/nav_graphs/space8/graph.pickle`.
 In that directory you can also check out `graph.svg` which visualizes the map.
+
+#### Build a topological map (real)
+We provide an example of building a map from real images. Please follow the steps below:
+
+* Download the [dataset](https://drive.google.com/file/d/1PBkhpfJMUTjWbj90slfk5frpQ4q1iGC2/view?usp=sharing) and put it inside `data/`. You should have `data/cse2roboticslab/traces/...`
+* Download the [map](https://drive.google.com/file/d/16EYgVAczPKORRPi0fy2CQhgGwQNQLmSU/view?usp=sharing) for visualization. Put it inside `rmp_nav/gibson/assets/dataset/`. You should have `dataset/cse2roboticslab/...`
+* Run the following command:
+  ```
+  bash build_graph.sh '' ../nav_graphs/cse2roboticslab/graph_config.yaml
+  ```
+
 
 #### Planning
 
