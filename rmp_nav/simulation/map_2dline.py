@@ -82,10 +82,10 @@ class Map(object):
         self._rasterize(self.rasterization_resolution)
 
         # A matrix of list storing the linedef indices that pass through each bin
-        self.line_map = [[[] for i in xrange(self.collision_map.shape[1])]
-                         for j in xrange(self.collision_map.shape[0])]
+        self.line_map = [[[] for i in range(self.collision_map.shape[1])]
+                         for j in range(self.collision_map.shape[0])]
 
-        for i in xrange(len(lines)):
+        for i in range(len(lines)):
             x1, y1, x2, y2 = lines[i]
             dx1, dy1 = self._grid_coord(x1, y1, self.collision_map_division, self.collision_map_bbox)
             dx2, dy2 = self._grid_coord(x2, y2, self.collision_map_division, self.collision_map_bbox)
@@ -110,7 +110,7 @@ class Map(object):
             return int((x - origin[0]) * n_division + 0.5), int((y - origin[1]) * n_division + 0.5)
 
         canvas = np.zeros((height, width), np.uint8)
-        for i in xrange(len(self.lines)):
+        for i in range(len(self.lines)):
             x1, y1, x2, y2 = self.lines[i]
             cv2.line(canvas, grid_coord(x1, y1, division), grid_coord(x2, y2, division), 255, 2)
 
@@ -374,18 +374,18 @@ class Map(object):
         #
         #     left, right, bottom, top = discrete_bbox
         #
-        #     for i in xrange(left, right+1):
+        #     for i in range(left, right+1):
         #         x = float(i - 0.5) / n_division
         #         ax.plot([x, x], [float(bottom - 0.5) / n_division, float(top - 0.5) / n_division],
         #                 color='#CCCCCC', linewidth=1.0, alpha=0.5)
         #
-        #     for i in xrange(bottom, top+1):
+        #     for i in range(bottom, top+1):
         #         y = float(i - 0.5) / n_division
         #         ax.plot([float(left - 0.5) / n_division, float(right - 0.5) / n_division], [y, y],
         #                 color='#CCCCCC', linewidth=1.0, alpha=0.5)
         #
-        #     for i in xrange(discrete_map.shape[0]):
-        #         for j in xrange(discrete_map.shape[1]):
+        #     for i in range(discrete_map.shape[0]):
+        #         for j in range(discrete_map.shape[1]):
         #             if discrete_map[i, j]:
         #                 ax.add_patch(
         #                     patches.Rectangle(
@@ -394,7 +394,7 @@ class Map(object):
         #                         1.0 / n_division, 1.0 / n_division
         #                     )
         #                 )
-        #     for i in xrange(0, len(waypoints), 5):
+        #     for i in range(0, len(waypoints), 5):
         #         x, y = waypoints[i]
         #         ax.add_patch(
         #             patches.Rectangle(
@@ -436,7 +436,7 @@ class Map(object):
         queries[:, 0] = x
         queries[:, 1] = y
 
-        for i in xrange(n_depth_ray):
+        for i in range(n_depth_ray):
             # FIXME: hack
             if abs(fov - np.pi * 2.0) < 1e-5:
                 theta = float(i) / n_depth_ray * fov

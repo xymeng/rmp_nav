@@ -110,6 +110,8 @@ def MakeGibsonMap(assets_dir, scene_id, **kwargs):
         paths, attributes = svg2paths(floorplan_file)
         lines = _paths_to_lines(paths, W, H, S)
 
+        kwargs.pop('path_map_weighted_dilation')
+
         return GibsonMapLine(
             assets_dir, scene_id,
             lines=lines,

@@ -21,7 +21,7 @@ def rasterize_line(x0, y0, x1, y1):
 
     points = []
 
-    for i in xrange(dx + dy):
+    for i in range(dx + dy):
         points.append((x0, y0))
         e1 = e + dy
         e2 = e - dx
