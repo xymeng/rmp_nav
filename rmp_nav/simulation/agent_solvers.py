@@ -183,6 +183,87 @@ class CarAgentLocalClassicRMPSolver(SolverBase):
             return accel
 
 
+class TurtleBotLocalClassicRMPSolver(SolverBase):
+    def __init__(self, **kwargs):
+        self.rmp_solver = rmp.RMP2(**kwargs)
+        self.params = kwargs.get('params', Params())
+
+    def get_control_point_accels(self):
+        return self.rmp_solver.control_point_accels
+
+    def get_control_point_metrics(self):
+        return self.rmp_solver.control_point_metrics
+
+    def compute_accel_local(self, agent, extra_rmps=None):
+        control_point_states = []
+
+        if extra_rmps is None:
+            extra_rmps = []
+
+        for i in range(len(agent.control_points)):
+            control_point_extra_rmps = []
+
+            p = agent.control_points[i]
+
+            prop = agent.control_point_properties[i]
+            affected_by_obstacles = prop['affected_by_obstacle']
+            affected_by_goals = prop['affected_by_goal']
+
+            if i == 0 and len(agent.goals_local) > 0:
+                x, y = agent.control_points[i]
+                cp_heading = np.arctan2(y, x)
+
+                cp_ortho = np.array(
+                    [np.cos(cp_heading + np.pi / 2),
+                     np.sin(cp_heading + np.pi / 2)]
+                )
+
+                goal_x, goal_y = agent.goals_local[0]
+                goal_bearing = np.arctan2(goal_y, goal_x)
+
+                accel_magnitude = (
+                    self.params.get('heading_alignment_gain', required=True) * goal_bearing
+                    - agent.angular_velocity * self.params.get('heading_alignment_damping', required=True))
+
+                # accel_magnitude = self.params.get('heading_alignment_gain', required=True) \
+                #         * (agent.goals_local[0][1]
+                #            - agent.angular_accel * self.params.get('heading_alignment_damping2', required=True)
+                #            - agent.angular_velocity * self.params.get('heading_alignment_damping', required=True)
+                #            - np.sign(agent.angular_velocity) * agent.angular_velocity**2
+                #            * self.params.get('heading_alignment_damping3', required=True)) \
+                #         * agent.approx_radius()
+
+                accel = accel_magnitude * cp_ortho
+                # accel = np.clip(accel_magnitude, -3.0, 3.0) * cp_ortho
+
+                control_point_extra_rmps.append(
+                    (accel, np.eye(2) * self.params.get('heading_alignment_metric_scale')))
+
+            extra_props = {
+                'obstacle_accel_gain': prop['obstacle_accel_gain'],
+                'goal_accel_gain': prop['goal_accel_gain'],
+                'obstacle_metric_scale': prop['obstacle_metric_scale'],
+                'goal_metric_scale': prop['goal_metric_scale'],
+                'combined_accel_gain': prop['combined_accel_gain'],
+                'rmp_config': prop.get('rmp_config', {})
+            }
+
+            state = [
+                p,
+                agent.local_velocity(p),
+                agent.goals_local if affected_by_goals else [],
+                agent.obstacles_local if affected_by_obstacles else [],
+                agent.get_local_jacobian(p),
+                control_point_extra_rmps,
+                extra_props
+            ]
+
+            control_point_states.append(state)
+
+        accel = self.rmp_solver.compute_optimal_accel(control_point_states, extra_rmps)
+        return accel
+
+
 class LocalVisualNeuralMetricSolverV2(SolverBase):
     def __init__(self, weights_file, n_control_points=4, gpu=0):
         from ..neural.regress_rmp_visual.inference import NeuralRMP

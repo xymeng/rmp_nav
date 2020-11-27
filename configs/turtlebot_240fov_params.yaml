@@ -1,0 +1,45 @@
+obstacle_ddx_align_with_normal: False
+
+combined_accel_gain: &combined_accel_gain 2.0
+
+head_combined_accel_gain: &head_combined_accel_gain 1.0
+head_obstacle_gain: &head_obstacle_gain 25.0
+
+heading_alignment_gain: 5.0
+heading_alignment_damping: 0.0
+heading_alignment_damping2: 0.0
+heading_alignment_damping3: 0.0
+heading_alignment_metric_scale: 1.0
+
+solver_params: "{
+   'obstacle_repel_gain':0.3,
+   'obstacle_damping':0.2,
+   'goal_attraction_gain': 0.5,
+   'goal_damping': 0.2,
+   'dist_penalty_coeff': 9.0,
+   'dist_penalty_offset':0.69-0.3,
+   'dist_penalty_multiplier':1.0 / 16,
+}
+"
+
+rmp_config: &rmp_cfg {}
+
+
+radius: 0.3
+rot_vel_limit: 1.0
+max_vel: 0.3
+
+control_points:
+  x, y, is_boundary, affected_by_obstacle, affected_by_goal, normal, obstacle_accel_gain, goal_accel_gain, combined_accel_gain, obstacle_metric_scale, goal_metric_scale, rmp_config:
+    - [0.2, 0.0, True, True, True, null, *head_obstacle_gain, 1.0, *head_combined_accel_gain, 1.0, 1.0, *rmp_cfg]
+    - [0.17, 0.1, True, True, False, [0.0, 1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [0.1, 0.17, True, True, True, [0.0, 1.0], 1.0, 1.0, *combined_accel_gain, 1.0, 1.0, *rmp_cfg]
+    - [0.0, 0.20, True, True, False, [0.0, 1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [-0.10, 0.17, True, True, False, [0.0, 1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [-0.17, 0.1, True, False, False, [0.0, 1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [-0.20, 0.0, True, False, False, null, 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [-0.17, -0.1, True, False, False, [0.0, -1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [-0.10, -0.17, True, True, False, [0.0, -1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [0.0, -0.20, True, True, False, [0.0, -1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]
+    - [0.1, -0.17, True, True, True, [0.0, -1.0], 1.0, 1.0, *combined_accel_gain, 1.0, 1.0, *rmp_cfg]
+    - [0.17, -0.1, True, True, False, [0.0, -1.0], 1.0, 1.0, 1.0, 1.0, 1.0, *rmp_cfg]

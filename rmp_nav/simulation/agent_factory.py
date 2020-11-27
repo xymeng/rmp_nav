@@ -15,4 +15,4 @@ agents_dict = agent_factory_common.agents_dict
 
 
 # Import agents
-from . import agent_factory_rccar, agent_factory_minirccar
+from . import agent_factory_rccar, agent_factory_minirccar, agent_factory_turtlebot

@@ -1,5 +1,6 @@
 from __future__ import print_function
 from past.builtins import xrange
+import math
 import numpy as np
 from numpy.linalg import norm
 import cv2
@@ -830,4 +831,106 @@ class RCCarAgentLocalVisualGibsonWaypointRef(RCCarAgentLocal, AgentLocalVisualGi
 
 
 class RCCarAgentLocalVisual2LidarGibson(RCCarAgentLocal, AgentLocalVisual2LIDAR_Gibson):
+    pass
+
+
+class TurtleBot(AgentLocal):
+    def __init__(self, params, noisy_actuation=False, **kwargs):
+        self.noisy_actuation = noisy_actuation
+
+        self.rot_vel_limit = params.get('rot_vel_limit', required=True)
+        self.angular_accel = 0.0
+
+        self.R = params.get('radius', required=True)
+
+        control_points_table = params.get('control_points', required=True)
+        key = list(control_points_table.keys())[0]
+        props = list(control_points_table.values())[0]
+        prop_keys = [_.strip() for _ in key.split(',')]
+        control_point_properties = []
+        for prop in props:
+            control_point_properties.append(dict(zip(prop_keys, prop)))
+        self.control_point_properties = control_point_properties
+
+        control_points = np.array([(prop['x'], prop['y'])
+                                   for prop in control_point_properties],
+                                  np.float32)
+
+        super(TurtleBot, self).__init__(control_points=control_points, **kwargs)
+
+    def accel_size(self):
+        # forward acceleration and angular acceleration.
+        return 2
+
+    def get_boundary_control_points(self):
+        return [self.control_points[i] for i in xrange(len(self.control_points))
+                if self.control_point_properties[i]['is_boundary']]
+
+    def get_local_jacobian(self, p):
+        v = self.get_signed_velocity_norm()
+        transform = np.array([
+            [1.0, 0.0],
+            [0.0, max(v, 0.01)]
+        ], np.float32)
+        return transform
+
+    def get_signed_velocity_norm(self):
+        '''
+        :return: the signed velocity along the heading direction.
+        '''
+        heading_dir = np.array([np.cos(self.heading), np.sin(self.heading)], np.float32)
+        return np.dot(self.velocity, heading_dir)
+
+    def _apply_accel(self, accel_local, step_size, max_vel=None):
+        self.pos += self.velocity * step_size
+        self.heading += self.angular_velocity * step_size
+
+        dv, dtheta = accel_local
+        dv = max(dv, 0.0)
+        max_vel = 0.5
+
+        heading_dir = np.array([np.cos(self.heading), np.sin(self.heading)], np.float32)
+
+        vel_norm = self.get_signed_velocity_norm()
+
+        self.accel = heading_dir * dv
+
+        self.velocity = heading_dir * vel_norm + self.accel * step_size
+        if max_vel is not None:
+            vnorm = np.linalg.norm(self.velocity)
+            if vnorm > max_vel:
+                self.velocity = self.velocity / vnorm * max_vel
+
+        prev_angular_vel = float(self.angular_velocity)
+
+        self.angular_velocity = dtheta
+        self.angular_velocity = np.clip(self.angular_velocity, -self.rot_vel_limit, self.rot_vel_limit)
+        self.angular_accel = self.angular_velocity - prev_angular_vel
+        print('dtheta', dtheta)
+
+    def collide(self, tolerance=0.075):
+        global_pos = self.get_global_control_points_pos()
+        x1, y1 = self.pos
+        lines = np.concatenate([np.array([[x1, y1]] * len(global_pos), np.float32),
+                                np.array(global_pos, np.float32)], axis=1)
+        return not all(self.map.no_touch_batch(lines, tolerance=tolerance))
+        # Equivalent to
+        # for i in xrange(len(global_pos)):
+        #     x2, y2 = global_pos[i]
+        #     if not self.map.touch(x1, y1, x2, y2, tolerance=tolerance):
+        #         return True
+        # return False
+
+    def stopped(self):
+        if len(self.state_history) < self.state_history.maxlen:
+            return False
+
+        for vel, accel in self.state_history:
+            if not (norm(accel[:2]) < 1e-2 and norm(vel) < 1e-2):
+                return False
+
+        return True
+
+
+class TurtleBotLocalLIDAR(TurtleBot, AgentLocalLIDAR):
     pass
