@@ -11,6 +11,8 @@ import msgpack
 import msgpack_numpy
 msgpack_numpy.patch()
 
+from rmp_nav.common.utils import get_gibson2_asset_dir
+
 
 gflags.DEFINE_string('assets_dir', '', '')
 gflags.DEFINE_string('scene_id', '', '')
@@ -204,7 +206,13 @@ class Server(object):
 
 
 server = Server()
-server.start(FLAGS.assets_dir, FLAGS.scene_id, FLAGS.resolution, FLAGS.h_fov, FLAGS.v_fov, FLAGS.gpu, FLAGS.shadow)
+
+if not FLAGS.assets_dir:
+    assets_dir = get_gibson2_asset_dir()
+else:
+    assets_dir = FLAGS.assets_dir
+
+server.start(assets_dir, FLAGS.scene_id, FLAGS.resolution, FLAGS.h_fov, FLAGS.v_fov, FLAGS.gpu, FLAGS.shadow)
 
 
 def exec_cmd(msg):
