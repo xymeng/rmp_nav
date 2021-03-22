@@ -9,12 +9,10 @@ import os
 import yaml
 import zmq
 
-from rmp_nav.simulation.gibson_sim_client import GibsonSimClient
-from rmp_nav.simulation.gibson2_sim_client import Gibson2SimClient
+
 from rmp_nav.simulation import agent_factory
 from rmp_nav.common.math_utils import depth_to_xy
 from rmp_nav.common.utils import pprint_dict, get_default_persistent_server_config
-from rmp_nav.simulation import gibson_sim_client, gibson_filler_server
 
 
 _LOG_RENDER_TIME = False
@@ -435,6 +433,8 @@ class DatasetVisualGibson(DatasetVisual):
         return yaml.load(open(cfg_file), Loader=yaml.SafeLoader)
 
     def _start_renderer_servers_local(self):
+        from rmp_nav.simulation import gibson_sim_client, gibson_filler_server
+        
         if self.n_filler_server == 0:
             return
 
@@ -516,6 +516,7 @@ class DatasetVisualGibson(DatasetVisual):
         context.term()
 
     def _start_renderer_clients(self):
+        from rmp_nav.simulation.gibson_sim_client import GibsonSimClient
         for map_name, servers in self.sim_servers.items():
             if map_name == 'all':
                 # This server can handle all maps. We need to set client's  to make sure
@@ -791,6 +792,8 @@ class DatasetVisualGibson2(DatasetVisual):
         return meta['ref_z']
 
     def _start_renderer_clients(self):
+        from rmp_nav.simulation.gibson2_sim_client import Gibson2SimClient
+        
         # There are issues when I let each renderer client create its own context and socket when
         # there are large number of environments. In practice one context and socket is sufficient.
         self.rc_context = zmq.Context()
