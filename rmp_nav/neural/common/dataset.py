@@ -1,6 +1,3 @@
-from __future__ import print_function
-from future.utils import iteritems
-from past.builtins import xrange
 import h5py
 import torch.utils.data as data
 import itertools
@@ -10,10 +7,13 @@ import time
 import bisect
 import os
 import yaml
+import zmq
+
 from rmp_nav.simulation.gibson_sim_client import GibsonSimClient
+from rmp_nav.simulation.gibson2_sim_client import Gibson2SimClient
 from rmp_nav.simulation import agent_factory
 from rmp_nav.common.math_utils import depth_to_xy
-from rmp_nav.common.utils import pprint_dict
+from rmp_nav.common.utils import pprint_dict, get_default_persistent_server_config
 from rmp_nav.simulation import gibson_sim_client, gibson_filler_server
 
 
@@ -124,7 +124,7 @@ class DatasetVisual(data.Dataset):
         self.traj_ids = flatten(
             zip(itertools.repeat(i),
                 list(fds[i].keys())[0: max_traj if max_traj > 0 else len(fds[i])])
-            for i in xrange(len(fds)))
+            for i in range(len(fds)))
         print('total trajectories:', len(self.traj_ids))
 
         self.traj_id_to_dset_idx = {traj_id: dset_idx for dset_idx, traj_id in self.traj_ids}
@@ -158,7 +158,7 @@ class DatasetVisual(data.Dataset):
             n_sample_per_file[i] += fds[i][tid].shape[0]
 
         self.sample_weights = []
-        for i in xrange(len(n_sample_per_file)):
+        for i in range(len(n_sample_per_file)):
             self.sample_weights.extend([1.0 / n_sample_per_file[i]] * n_sample_per_file[i])
 
         assert len(self.sample_weights) == self.traj_len_cumsum[-1]
@@ -171,12 +171,12 @@ class DatasetVisual(data.Dataset):
         self.opened = False
 
         self.dataset_attrs = []  # The global attribute of each dataset
-        for i in xrange(len(fds)):
+        for i in range(len(fds)):
             self.dataset_attrs.append(dict(fds[i].attrs.items()))
         #
         # # self.attrs[dset_idx][traj_id] == fds[i][traj_id].attrs
         self.attrs = []  # Per trajactory attributes
-        for i in xrange(len(fds)):
+        for i in range(len(fds)):
             self.attrs.append({
                 traj_id: dict(fds[i][traj_id].attrs.items()) for traj_id in fds[i]
             })
@@ -238,7 +238,7 @@ class DatasetVisual(data.Dataset):
         else:
             self.agent.goals_local = [goal_local]
 
-    def _render_agent_view(self, map_name):
+    def _render_agent_view(self, map_name, **kwargs):
         self.agent._measure()
         return self.agent.depth_local
 
@@ -327,10 +327,10 @@ class DatasetVisual(data.Dataset):
             laserscans.append(agent.depth_local)
         return laserscans
 
-    def render(self, pos, heading, map_name):
+    def render(self, pos, heading, map_name, **kwargs):
         self.agent.set_pos(pos)
         self.agent.set_heading(heading)
-        return self._render_agent_view(map_name)
+        return self._render_agent_view(map_name, **kwargs)
 
     def __getitem__(self, idx):
         self._init_once(idx)
@@ -443,7 +443,7 @@ class DatasetVisualGibson(DatasetVisual):
         else:
             h_fov, v_fov = self.h_fov, self.v_fov
 
-        for i in xrange(self.n_filler_server):
+        for i in range(self.n_filler_server):
             self.filler_servers.append(gibson_filler_server.LaunchServer(
                 self.render_resolution,
                 self.gpus[i % len(self.gpus)],
@@ -460,7 +460,7 @@ class DatasetVisualGibson(DatasetVisual):
             if map_name not in self.sim_servers:
                 self.sim_servers[map_name] = []
 
-            for i in xrange(self.n_sim_per_map):
+            for i in range(self.n_sim_per_map):
                 filler_server_addr = self.filler_servers[idx % self.n_filler_server][1]
 
                 sim_proc, addr = gibson_sim_client.LaunchServer(
@@ -477,7 +477,7 @@ class DatasetVisualGibson(DatasetVisual):
         # Start local servers
         self._start_renderer_servers_local()
         # Add persistent servers
-        for map_name, addrs in iteritems(self.persistent_servers):
+        for map_name, addrs in self.persistent_servers.items():
             if map_name not in self.sim_servers and len(addrs) > 0:
                 self.sim_servers[map_name] = []
             for addr in addrs:
@@ -499,7 +499,7 @@ class DatasetVisualGibson(DatasetVisual):
             except Exception as e:
                 raise RuntimeError()
 
-        for name, servers in iteritems(self.sim_servers):
+        for name, servers in self.sim_servers.items():
             for proc, addr in servers:
                 if proc is not None:
                     # proc can be None if the server is persistent. In that case we don't kill it.
@@ -516,7 +516,7 @@ class DatasetVisualGibson(DatasetVisual):
         context.term()
 
     def _start_renderer_clients(self):
-        for map_name, servers in iteritems(self.sim_servers):
+        for map_name, servers in self.sim_servers.items():
             if map_name == 'all':
                 # This server can handle all maps. We need to set client's  to make sure
                 # requests are correctly routed.
@@ -542,11 +542,11 @@ class DatasetVisualGibson(DatasetVisual):
         print('started renderer clients:\n%s' % pprint_dict(self.sim_clients))
 
     def _stop_renderer_clients(self):
-        for map_name, clients in iteritems(self.sim_clients):
+        for map_name, clients in self.sim_clients.items():
             for client in clients:
                 client.stop()
 
-    def _render_agent_view(self, map_name):
+    def _render_agent_view(self, map_name, **kwargs):
         import cv2
 
         # Randomly choose a simulation client
@@ -652,7 +652,7 @@ class DatasetVisualRecording(data.Dataset):
         self.samples = samples
         print('number of samples: ', len(samples))
 
-        self.sample_weights = [1.0 for _ in xrange(len(samples))]
+        self.sample_weights = [1.0 for _ in range(len(samples))]
 
         self.agent = agent_factory.agents_dict[agent_name]()
 
@@ -701,3 +701,190 @@ class DatasetVisualRecording(data.Dataset):
 
     def __len__(self):
         return len(self.samples)
+
+
+class DatasetVisualGibson2(DatasetVisual):
+    def __init__(self,
+                 assets_dir,
+                 output_resolution,
+                 camera_pos=(0.0, 0.0), camera_z=1.0, h_fov=None, v_fov=None,
+                 gpu_device=None,
+                 persistent_server_cfg_file=None,
+                 **kwargs):
+        """
+        :param gpu_device: can be either an integer or a list of integers
+        :param render_resolution: the resolution of rendered images from Gibson
+        :param camera_pos: the camera position w.r.t the agent's coordinate system
+        :param camera_z: the height of camera
+        :param h_fov, v_fov: control field of view of rendered images. If None
+               default to agent.lidar_fov
+        :param n_filler_server: number of filler servers to use
+        :param n_sim_per_map: number of simulation servers for each map
+        """
+        if not os.path.isdir(assets_dir):
+            raise RuntimeError("directory %s doesn't exist" % assets_dir)
+        self.assets_dir = assets_dir
+
+        super(DatasetVisualGibson2, self).__init__(**kwargs)
+
+        self.output_resolution = output_resolution
+        self.h_fov = h_fov
+        self.v_fov = v_fov
+
+        self.camera_pos = np.array(camera_pos, np.float32)
+        self.camera_z = camera_z
+
+        if hasattr(gpu_device, '__iter__'):
+            self.gpus = list(gpu_device)
+        elif gpu_device is not None:
+            self.gpus = [gpu_device]
+        else:
+            self.gpus = []
+
+        self.sim_servers = {}
+        self.sim_clients = {}
+
+        if persistent_server_cfg_file is None:
+            persistent_server_cfg_file = get_default_persistent_server_config()
+
+        self.persistent_server_cfg_file = persistent_server_cfg_file
+
+        # key is map name. value is a list of server address in zmq format.
+        self.persistent_servers = {}
+        if persistent_server_cfg_file is not None:
+            self.persistent_servers = self._parse_persistent_server(persistent_server_cfg_file)
+
+        self.g.update({
+            'persistent_servers': self.persistent_servers
+        })
+
+        self.is_worker = False
+
+        # Read floor heights. This is important because some maps have nonzero floor heights.
+        floor_heights = {}
+        for map_name in self.map_names:
+            floor_heights[map_name] = self._get_floor_height(map_name)
+        self.floor_heights = floor_heights
+
+        # Add persistent servers
+        for map_name, addrs in self.persistent_servers.items():
+            if map_name not in self.sim_servers and len(addrs) > 0:
+                self.sim_servers[map_name] = []
+            for addr in addrs:
+                self.sim_servers[map_name].append((None, addr))
+
+    def render_traj(self, traj, map_name='unspecified'):
+        imgs = []
+        for sample in traj:
+            self._set_agent_state(sample)
+            imgs.append(self._render_agent_view(map_name))
+        return imgs
+
+    def _parse_persistent_server(self, cfg_file):
+        return yaml.load(open(cfg_file), Loader=yaml.SafeLoader)
+
+    def _get_floor_height(self, map_name):
+        meta_file = os.path.join(self.assets_dir, map_name, 'floorplan.yaml')
+        if not os.path.isfile(meta_file):
+            raise ValueError('Cannot find meta file %s' % meta_file)
+        meta = yaml.load(open(meta_file).read(), Loader=yaml.SafeLoader)
+        return meta['ref_z']
+
+    def _start_renderer_clients(self):
+        # There are issues when I let each renderer client create its own context and socket when
+        # there are large number of environments. In practice one context and socket is sufficient.
+        self.rc_context = zmq.Context()
+
+        for map_name, servers in self.sim_servers.items():
+            if map_name == 'all':
+                # This server can handle all maps. We need to set client's  to make sure
+                # requests are correctly routed.
+                for sim_proc, addr in servers:
+                    socket = self.rc_context.socket(zmq.REQ)
+                    socket.connect(addr)
+
+                    for identity in self.map_names:
+                        client = Gibson2SimClient(self.rc_context, socket)
+                        client.start(create_server=False, server_addr=addr,
+                                     identity=identity.encode())
+
+                        if identity not in self.sim_clients:
+                            self.sim_clients[identity] = []
+
+                        self.sim_clients[identity].append(client)
+            else:
+                if map_name not in self.sim_clients:
+                    self.sim_clients[map_name] = []
+
+                for sim_proc, addr in servers:
+                    client = Gibson2SimClient(self.rc_context, self.rc_socket)
+                    client.start(create_server=False, server_addr=addr)
+                    self.sim_clients[map_name].append(client)
+
+        print('started renderer clients:\n%s' % pprint_dict(self.sim_clients))
+
+    def _stop_renderer_clients(self):
+        for map_name, clients in self.sim_clients.items():
+            for client in clients:
+                client.stop()
+
+    def _render_agent_view(self, map_name, camera_z=None, h_fov=None, v_fov=None):
+        # Randomly choose a simulation client
+        client_idx = self.rng.randint(len(self.sim_clients[map_name]))
+        sim = self.sim_clients[map_name][client_idx]
+
+        cam_pos = self.agent.local_to_global(self.camera_pos)
+
+        if camera_z is None:
+            camera_z = self.camera_z
+
+        if h_fov is None:
+            h_fov = self.h_fov
+
+        if v_fov is None:
+            v_fov = self.v_fov
+
+        def _render():
+            # Send the complete state information in one call because the servers may be load-balanced.
+            # Send state information in multiple calls may cause them to be distributed to into multiple
+            # servers, which causes inconsistency.
+            return sim.RenderAndGetScreenBuffer(
+                cam_pos[0], cam_pos[1], self.agent.heading, camera_z + self.floor_heights[map_name],
+                self.output_resolution, self.output_resolution, h_fov, v_fov)
+
+        if _LOG_RENDER_TIME:
+            if not hasattr(self, 'accum_render_time'):
+                self.accum_render_time = 0
+                self.render_count = 0
+
+            start_time = time.time()
+            img = _render()
+            self.accum_render_time += time.time() - start_time
+            self.render_count += 1
+
+            if self.render_count % 100 == 0:
+                print('avg render_time', self.accum_render_time / 100)
+                self.accum_render_time = 0
+        else:
+            img = _render()
+
+        # img is H x W x 3 uint8
+        img = img.astype(np.float32) / 255.0
+        img = np.transpose(img, (2, 0, 1))
+
+        if self.random_lighting:
+            return _randomize_lighting(self.rng, img)
+
+        return img
+
+    def _worker_init(self):
+        print('worker_init pid', os.getpid())
+        self.is_worker = True
+        self._start_renderer_clients()
+
+    def __del__(self):
+        if self.is_worker:
+            # This is mostly likely never called because worker process gets terminated
+            # directly without cleanup.
+            print('stopping render clients (pid %d)' % os.getpid())
+            self._stop_renderer_clients()

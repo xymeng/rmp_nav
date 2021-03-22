@@ -1,0 +1,49 @@
+tracker_weights_file: ''
+n_frame_min: 16
+n_frame_max: 64
+normalize_wp: True
+jitter: True
+rand_frame_interval: True
+hd5_files: [
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_1.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_2.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_3.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_4.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_5.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_6.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_7.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_8.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_9.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_10.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_11.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_12.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_13.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_14.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_15.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_16.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_17.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_18.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_19.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_20.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_21.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_22.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_23.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_24.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_25.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_26.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_27.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_28.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_29.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_30.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_31.hd5',
+  '../data/gibson2/minirccar_agent_local_240fov_18env_slow/train_32.hd5',
+]
+agent_name: 'minirccar_240fov_rmp_v2'
+
+assets_dir: '../rmp_nav/gibson2'
+camera_pos: [0.065, 0.0]
+demo_camera_z: 1.0
+rollout_camera_z: 1.0
+demo_fov: [2.07, 1.87]
+rollout_fov: [2.07, 1.87]
+output_resolution: 64

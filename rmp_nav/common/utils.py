@@ -52,6 +52,22 @@ def module_grad_stats(module):
     return tabulate.tabulate(data, headers, tablefmt='psql')
 
 
+def module_weights_stats(module):
+    headers = ['layer', 'max', 'min']
+
+    def maybe_max(x):
+        return x.max() if x is not None else 'None'
+
+    def maybe_min(x):
+        return x.min() if x is not None else 'None'
+
+    data = [
+        (name, maybe_max(param), maybe_min(param))
+        for name, param in module.named_parameters()
+    ]
+    return tabulate.tabulate(data, headers, tablefmt='psql')
+
+
 def save_model(state, step, dir, filename):
     import torch
     path = os.path.join(dir, '%s.%d' % (filename, step))
@@ -99,6 +115,10 @@ def get_gibson_asset_dir():
     return os.path.join(get_project_root(), 'rmp_nav', 'gibson', 'assets', 'dataset')
 
 
+def get_gibson2_asset_dir():
+    return os.path.join(get_project_root(), 'rmp_nav', 'gibson2')
+
+
 def get_data_dir():
     return os.path.join(get_project_root(), 'data')
 
@@ -109,6 +129,14 @@ def get_config_dir():
 
 def get_model_dir():
     return os.path.join(get_project_root(), 'models')
+
+
+def get_gibson_persistent_servers_dir():
+    return os.path.join(get_project_root(), 'configs/gibson_persistent_servers')
+
+
+def get_default_persistent_server_config():
+    return os.path.join(get_gibson_persistent_servers_dir(), 'local.yaml')
 
 
 def cairo_argb_to_opencv_rgb(arr):

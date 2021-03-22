@@ -190,10 +190,19 @@ def rasterize(lines, bbox, division=None, resolution=None):
     return canvas
 
 
-def path_length(waypoints):
-    s = 0.0
-    for i in xrange(1, len(waypoints)):
-        x1, y1 = waypoints[i - 1]
-        x2, y2 = waypoints[i]
-        s += math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
-    return s
+def path_length(xys):
+    """
+    :param xys: N x 2
+    :return: path length. float.
+    """
+    if len(xys) <= 1:
+        return 0.0
+    return float(np.sum(np.linalg.norm(np.array(xys[1:]) - np.array(xys[:-1]), axis=1, ord=2)))
+
+
+def cum_path_length(xys):
+    """
+    :param xys: N x 2
+    :return: cumulative path length. size of N - 1.
+    """
+    return np.cumsum(np.linalg.norm(np.array(xys[1:]) - np.array(xys[:-1]), axis=1, ord=2))

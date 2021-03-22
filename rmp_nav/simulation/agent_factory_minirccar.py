@@ -26,6 +26,25 @@ def classic_240fov_minirccar(**kwargs):
 
 
 @add_agent
+def minirccar_240fov_rmp_v2(**kwargs):
+    # Works better at tight spaces.
+    # Maximum speed is capped at 0.5m/s
+    params = Params(os.path.join(get_project_root(), 'configs/minirccar_240fov_v2.yaml'))
+    solver_params = eval(params.get('solver_params', 'dict()'))
+    kwargs['max_waypoint_dist'] = 0.5
+    kwargs['max_vel'] = 0.5
+    return agents.RCCarAgentLocalLIDAR(
+        params=params,
+        n_depth_ray=50,
+        lidar_fov=np.pi / 180 * 240,
+        lidar_sensor_pos=(0.08, 0.0),
+        solver=agent_solvers.CarAgentLocalClassicRMPSolver(
+            params=params, **solver_params
+        ),
+        **kwargs)
+
+
+@add_agent
 def gibson12v2_240fov_minirccar_z0228_fisheye64_metric(gpu_idx=0, **kwargs):
     params = Params(os.path.join(get_project_root(), 'configs/minirccar_240fov_params.yaml'))
     kwargs['persistent_servers'] = param_utils.global_params.get('persistent_servers', None)

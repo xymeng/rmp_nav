@@ -6,7 +6,16 @@ __pycache__
 
 /models/
 /rmp_nav/gibson
+/rmp_nav/gibson2
 
 /cmake-build-*/
 
 *.so
+
+*log.txt
+*-model.*
+data/
+
+*.pickle
+*.tar.gz
+

@@ -21,6 +21,7 @@ class Map(object):
                  path_map_weighted_dilation=False,
                  reachable_area_dilation=3,
                  destination_map=None,
+                 background_traversable=True,
                  name=None):
         """
         path_map encodes the allowed space for path planning
@@ -37,6 +38,7 @@ class Map(object):
                being closed due to the dilation process and also allows the agent to start at
                positions anywhere from the original path maps.
         :param reachable_area_dilation:  higher value will shrink the reachable area further
+        :param background_traversable: this affects map bounding box calculation.
         """
 
         self.g = {
@@ -46,6 +48,8 @@ class Map(object):
         }
 
         self.occupancy_grid = occupancy_grid
+        self.occupancy_grid_copy = np.array(self.occupancy_grid, copy=True)
+
         self.resolution = resolution
         self.origin = origin
         self.name = name
@@ -60,7 +64,7 @@ class Map(object):
             255 - self.binary_occupancy, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
         print('distance transform time: %.2f sec' % (time.time() - start_time))
 
-        self.visible_map_bbox = self._compute_visible_map_bbox()
+        self.visible_map_bbox = self._compute_visible_map_bbox(background_traversable)
 
         self.path_map_division = path_map_division
         if path_map is None:
@@ -131,6 +135,7 @@ class Map(object):
         h, w = self.binary_occupancy.shape
         self.square_omap = np.zeros((max(h, w), max(h, w)), np.uint8)
         self.square_omap[:w, :h] = np.transpose(self.binary_occupancy, (1, 0))
+        self.square_omap_copy = np.array(self.square_omap, copy=True)
 
         self.omap = range_libc.PyOMap(self.square_omap)
 
@@ -138,6 +143,61 @@ class Map(object):
 
     def __repr__(self):
         return '%s %s options:\n%s' % (self.__class__.__name__, self.name, pprint_dict(self.g))
+
+    def clear_obstacles(self):
+        self.occupancy_grid = np.array(self.occupancy_grid_copy, copy=True)
+        self.square_omap = np.array(self.square_omap_copy, copy=True)
+        self.omap = range_libc.PyOMap(self.square_omap)
+        self.range_scanner = range_libc.PyBresenhamsLine(self.omap, 1000)
+
+    def put_box_obstacle(self, x, y, w, h, check_collision=False):
+        x1, y1 = x - w * 0.5, y - h * 0.5
+        x2, y2 = x + w * 0.5, y + h * 0.5
+
+        xx1, yy1 = self.grid_coord(x1, y1, int(1.0/self.resolution))
+        xx2, yy2 = self.grid_coord(x2, y2, int(1.0/self.resolution))
+
+        if check_collision:
+            if np.any(self.occupancy_grid[yy1:yy2, xx1:xx2] == 0):
+                return False
+            # if np.sum(self.occupancy_grid[yy1:yy2, xx1:xx2]) > 0:
+            #     return False
+
+        self.occupancy_grid[yy1:yy2, xx1:xx2] = 0.0
+
+        self.square_omap[xx1:xx2, yy1:yy2] = 1
+        self.omap = range_libc.PyOMap(self.square_omap)
+        self.range_scanner = range_libc.PyBresenhamsLine(self.omap, 1000)
+
+        return True
+
+    def put_cylinder_obstacle(self, x, y, r, check_collision=False, collision_inflation_radius=0.0):
+        xys = []
+        xys_collision = []
+        for i in range(360):
+            s = math.cos(np.deg2rad(i))
+            c = math.sin(np.deg2rad(i))
+            xys.append((x + r * c, y + r * s))
+            xys_collision.append((x + (r + collision_inflation_radius) * c,
+                                  y + (r + collision_inflation_radius) * s))
+
+        xys = np.array(xys)
+        xys = self.grid_coord_batch(xys, int(1.0/self.resolution))
+
+        if check_collision:
+            xys_collision = np.array(xys_collision)
+            xys_collision = self.grid_coord_batch(xys_collision, int(1.0 / self.resolution))
+            if np.any(self.occupancy_grid[xys_collision[:, 1], xys_collision[:, 0]] == 0):
+                return False
+            # if np.sum(self.occupancy_grid[yy1:yy2, xx1:xx2]) > 0:
+            #     return False
+
+        self.occupancy_grid[xys[:, 1], xys[:, 0]] = 0.0
+        self.square_omap[xys[:, 0], xys[:, 1]] = 1
+        self.omap = range_libc.PyOMap(self.square_omap)
+        self.range_scanner = range_libc.PyBresenhamsLine(self.omap, 1000)
+
+        return True
 
     def get_parameters(self):
         """
@@ -158,9 +218,12 @@ class Map(object):
         n = np.prod(self.path_map.shape[:2]) - np.count_nonzero(self.path_map)
         return self.resolution**2 * n
 
-    def _compute_visible_map_bbox(self):
-        # Compute visible map bbox for visualization purposes
-        nz_indices = np.transpose(np.nonzero(self.occupancy_grid == 0))
+    def _compute_visible_map_bbox(self, background_traversable):
+        if background_traversable:
+            nz_indices = np.transpose(np.nonzero(self.occupancy_grid == 0))
+        else:
+            nz_indices = np.transpose(np.nonzero(self.occupancy_grid != 0))
+
         # Note that axis 0 is y and axis 1 is x
         # bbox is (x_min, x_max, y_min, y_max)
         grid_x_min, grid_x_max, grid_y_min, grid_y_max = (
@@ -283,7 +346,7 @@ class Map(object):
         start_coord = self.grid_coord(start_pos[0], start_pos[1], self.path_map_division)
         goal_coord = self.grid_coord(goal_pos[0], goal_pos[1], self.path_map_division)
 
-        waypoints = map_utils.a_star(self.path_map, start_coord, goal_coord)
+        waypoints = map_utils.a_star(self.path_map, start_coord, goal_coord, soft_obstacle_scale=5.0 / 255.0)
 
         if waypoints is None:
             return None

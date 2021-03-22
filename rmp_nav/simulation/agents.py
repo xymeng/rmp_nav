@@ -115,6 +115,7 @@ class AgentLocal(Agent):
                  max_waypoint_dist=None,
                  waypoint_visibility_thres=0.06,
                  waypoint_normalize_dist=None,
+                 max_vel=None,
                  **kwargs):
         '''
         A general agent that uses local sensor measurements. The obstacles and waypoints
@@ -128,6 +129,7 @@ class AgentLocal(Agent):
         :param max_waypoint_ahead: upper limit of the distance (in waypoint count)
                                    to the next waypoint.
         :param max_waypoint_dist: upper limit of the metric distance to the next waypoint.
+        :param max_vel: maximum linear velocity.
         '''
 
         super(AgentLocal, self).__init__(**kwargs)
@@ -153,8 +155,11 @@ class AgentLocal(Agent):
         self.goal_clip_fov = goal_clip_fov
         self.max_waypoint_ahead = max_waypoint_ahead
         self.max_waypoint_dist = max_waypoint_dist
+
         self.waypoint_visibility_thres = waypoint_visibility_thres
         self.waypoint_normalize_dist = waypoint_normalize_dist
+
+        self.max_vel = max_vel
 
         self.g = {
             'goal_clip_fov': self.goal_clip_fov,
@@ -356,7 +361,7 @@ class AgentLocal(Agent):
         if hasattr(self.solver, 'get_control_point_metrics'):
             self.control_point_metrics = self.solver.get_control_point_metrics()
 
-        self._apply_accel(accel_local, step_size, max_vel=kwargs.get('max_vel', None))
+        self._apply_accel(accel_local, step_size, max_vel=kwargs.get('max_vel', self.max_vel))
 
         self.state_history.append(
             (np.array(self.velocity, copy=True), np.array(self.accel, copy=True)))
@@ -778,11 +783,18 @@ class RCCarAgentLocal(AgentLocal):
         # print 'dv %f dsteering %f speed %f steer %f' % (
         #     dv, dsteering, self.get_signed_velocity_norm(), self.steering)
 
-    def collide(self, tolerance=0.075):
-        global_pos = self.get_global_control_points_pos()
+    def collide(self, tolerance=0.075, inflate=1.0):
+        """
+        :param inflate: inflate robot size.
+        :return:
+        """
+        global_pos = np.array(self.get_global_control_points_pos(), np.float32)
         x1, y1 = self.pos
+
+        global_pos = (global_pos - self.pos) * inflate + self.pos
+
         lines = np.concatenate([np.array([[x1, y1]] * len(global_pos), np.float32),
-                                np.array(global_pos, np.float32)], axis=1)
+                                global_pos], axis=1)
         return not all(self.map.no_touch_batch(lines, tolerance=tolerance))
         # Equivalent to
         # for i in xrange(len(global_pos)):

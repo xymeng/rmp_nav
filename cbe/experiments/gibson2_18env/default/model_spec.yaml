@@ -1,0 +1,106 @@
+img_encoder:
+    class: ImageEncoderV4
+    net_kwargs:
+        init_scale: 1.0
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+feature_map_pair_encoder:
+    class: FeatureMapPairEncoderV2
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+conv_encoder:
+    class: ConvEncoder
+    net_kwargs:
+        kernel_size: 1
+        output_dim: 512
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+recurrent:
+    class: Recurrent
+    net_kwargs:
+        input_size: 1088
+        hidden_size: 1024
+        num_layers: 1
+        init_scale: 1.0
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+progress_regressor:
+    class: MLPRegressorV2
+    net_kwargs:
+        dims: [1024, 512, 1]
+        init_scale: 1.0
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+waypoint_regressor:
+    class: MLPRegressorV2
+    net_kwargs:
+        dims: [1024, 512, 2]
+        init_scale: 1.0
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+heading_diff_regressor:
+    class: MLPRegressorV2
+    net_kwargs:
+        dims: [512, 256, 1]
+        init_scale: 1.0
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+# Traj embedding stuff
+embedding_img_pair_encoder:
+    class: ImagePairEncoderV2
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+embedding_recurrent:
+    class: Recurrent
+    net_kwargs:
+        input_size: 512
+        hidden_size: 512
+        num_layers: 1
+        init_scale: 1.0
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
+
+
+embedding_bottleneck:
+    class: MLPRegressorV2
+    net_kwargs:
+        dims: [512, 32]
+        init_scale: 1.0
+    opt: Adam
+    opt_kwargs:
+        lr: 3.0e-4
+        eps: 1.0e-5
