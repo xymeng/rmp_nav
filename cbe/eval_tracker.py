@@ -65,8 +65,6 @@ dataset, maps = envs.get(FLAGS.env)(
     n_frame_max=FLAGS.n_frame,
     frame_interval=FLAGS.frame_interval,
     rand_frame_interval=False,
-    n_context_frame=tracker.g.get('n_context_frame', 0),
-    noisy_odom=tracker.g.get('noisy_odom', False),
     normalize_wp=False)
 
 dataset._init_once(FLAGS.seed)
