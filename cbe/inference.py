@@ -368,7 +368,7 @@ def find_tracker(weights_file):
     state_dict = torch.load(weights_file, map_location='cpu')
     g = state_dict.get('global_args', {})
 
-    if 'end_to_end' in g.model_file:
+    if g.model_variant == 'default':
         return ProgressTrackerEndToEnd
 
     raise ValueError('Cannot find tracker for %s' % weights_file)
