@@ -145,18 +145,21 @@ class DatasetBase(DatasetVisual):
 
     def _render_demo_samples(self, map_name, samples):
         return self._render_samples(
-            map_name, samples, camera_z=self.demo_camera_z, h_fov=self.demo_fov[0], v_fov=self.demo_fov[1])
+            map_name, samples,
+            camera_z=self.demo_camera_z, h_fov=self.demo_fov[0], v_fov=self.demo_fov[1])
 
     def _render_rollout_samples(self, map_name, samples):
         return self._render_samples(
-            map_name, samples, camera_z=self.rollout_camera_z, h_fov=self.rollout_fov[0], v_fov=self.rollout_fov[1])
+            map_name, samples,
+            camera_z=self.rollout_camera_z, h_fov=self.rollout_fov[0], v_fov=self.rollout_fov[1])
 
     def __getitem__(self, idx):
         self._init_once(idx)
-        dataset_idx, traj_id, traj, map_name, samples, dense_samples= \
+        dataset_idx, traj_id, traj, map_name, samples, dense_samples = \
             self._get_sample(idx)
 
-        demo_imgs, positions, headings, waypoints_global, _ = self._render_demo_samples(map_name, samples)
+        demo_imgs, positions, headings, waypoints_global, _ = \
+            self._render_demo_samples(map_name, samples)
 
         if self.demo_camera_z != self.rollout_camera_z or self.demo_fov != self.rollout_fov:
             rollout_imgs, _, _, _, _ = self._render_rollout_samples(map_name, samples)
@@ -258,7 +261,8 @@ class DatasetDagger(DatasetBase):
         :param jitter:
         :param reach_overlap_thres:
         :param divergence_thres:
-        :param local_inference: if True will create the inference models directly. Useful with dataset_server.
+        :param local_inference: if True will create the inference models directly.
+               Useful with dataset_server.
         :param tracker_server_addr: if specified then will connect to this tracker server.
         :param kwargs:
         """
@@ -375,10 +379,12 @@ class DatasetDagger(DatasetBase):
             dheading = self.rng.randn() * 0.3 * np.deg2rad(45)  # 99% prob in +/- 45deg.
             agent.set_pos(dpos + pos)
             agent.set_heading(dheading + heading)
-            if self.agent.collide(tolerance=self.jitter_collision_tolerance, inflate=self.jitter_collision_inflation):
+            if self.agent.collide(tolerance=self.jitter_collision_tolerance,
+                                  inflate=self.jitter_collision_inflation):
                 continue
             overlaps = self._compute_overlap(agent.map, agent.pos, agent.heading, pos, heading)
-            if overlaps[0] < self.jitter_overlap_thres[0] or overlaps[1] < self.jitter_overlap_thres[1]:
+            if overlaps[0] < self.jitter_overlap_thres[0] or \
+                    overlaps[1] < self.jitter_overlap_thres[1]:
                 continue
             if self.debug:
                 print('overlap after jittering:', overlaps)
@@ -386,7 +392,8 @@ class DatasetDagger(DatasetBase):
         agent.set_pos(pos)
         agent.set_heading(heading)
 
-    def _gen_rollout(self, positions, headings, waypoints_global, start_ob, goal_ob, embedding, map_name):
+    def _gen_rollout(self, positions, headings, waypoints_global, start_ob, goal_ob,
+                     embedding, map_name):
         self.tracker.reset2(self.worker_id)
 
         map = self.maps[map_name]
@@ -403,7 +410,9 @@ class DatasetDagger(DatasetBase):
 
         def randomize_2nd_order_state():
             # FIXME: this is only applicable to a car-like vehicle
-            velocity = self.rng.uniform(0.0, 0.5) * np.array([math.cos(headings[0]), math.sin(headings[0])], np.float32)
+            # Keep the same direction.
+            direction = np.array([math.cos(headings[0]), math.sin(headings[0])], np.float32)
+            velocity = self.rng.uniform(0.0, 0.5) * direction
             agent.set_velocity(velocity)
             angular_vel = self.rng.uniform(0, math.pi)
             agent.set_angular_vel(angular_vel)
@@ -421,7 +430,8 @@ class DatasetDagger(DatasetBase):
             print('map_name:', map_name)
             print('agent_pos:', agent.pos)
             print('agent_heading:', agent.heading)
-            print('collision:', agent.collide(self.jitter_collision_tolerance, self.jitter_collision_inflation))
+            print('collision:', agent.collide(self.jitter_collision_tolerance,
+                                              self.jitter_collision_inflation))
 
         heading_diff = headings[0] - agent.heading
 
@@ -430,7 +440,9 @@ class DatasetDagger(DatasetBase):
         agent.set_waypoints([goal_pos])  # Used for checking reach condition.
 
         ob = self.render(agent.pos, agent.heading, map_name,
-                         camera_z=self.rollout_camera_z, h_fov=self.rollout_fov[0], v_fov=self.rollout_fov[1])
+                         camera_z=self.rollout_camera_z,
+                         h_fov=self.rollout_fov[0],
+                         v_fov=self.rollout_fov[1])
 
         cum_path_len = np.array([0.0] + cum_path_length(positions).tolist())
         path_len = cum_path_len[-1]
@@ -452,7 +464,8 @@ class DatasetDagger(DatasetBase):
         def check_status():
             # Check if reached using overlap estimation
             if self._overlap_reach(
-                    agent.pos, agent.heading, goal_pos, goal_heading, map, self.reach_overlap_thres):
+                    agent.pos, agent.heading, goal_pos, goal_heading, map,
+                    self.reach_overlap_thres):
                 return 'reached'
 
             if agent.reached_goal(relax=1.0):
@@ -465,7 +478,8 @@ class DatasetDagger(DatasetBase):
             # Check overlap between current observation and the closest trajectory ob
             # FIXME: this might not be a good thing if we train with dynamic obstacles.
             if not self._overlap_reach(
-                    agent.pos, agent.heading, positions[closest_idx], headings[closest_idx], map, (0.1, 0.1)):
+                    agent.pos, agent.heading, positions[closest_idx], headings[closest_idx],
+                    map, (0.1, 0.1)):
                 return 'fail'
 
             return 'following'
@@ -516,7 +530,8 @@ class DatasetDagger(DatasetBase):
         assert len(obs) == len(gt_progresses)
         assert len(obs) == len(gt_waypoints)
 
-        # The number of rollout samples can be larger than n_frame_max. We draw n_frame_max samples here.
+        # The number of rollout samples can be larger than n_frame_max.
+        # We draw n_frame_max samples here.
         idxs = sorted(self.rng.choice(
             len(obs), size=min(self.n_frame_max, len(obs)), replace=False))
 
@@ -547,7 +562,8 @@ class DatasetDagger(DatasetBase):
         dataset_idx, traj_id, traj, map_name, samples, dense_samples = \
             self._get_sample(idx)
 
-        imgs, positions, headings, waypoints_global, _ = self._render_demo_samples(map_name, samples)
+        imgs, positions, headings, waypoints_global, _ = \
+            self._render_demo_samples(map_name, samples)
 
         assert len(imgs) <= self.n_frame_max
 
@@ -575,8 +591,10 @@ class DatasetDagger(DatasetBase):
             'rollout_traj_len': len(rollout_obs),
             'rollout_obs': self._pad_to_length(np.array(rollout_obs), self.n_frame_max),
             'rollout_mask': mask,
-            'rollout_progress': self._pad_to_length(np.array(rollout_progress, np.float32), self.n_frame_max),
-            'rollout_waypoints': self._pad_to_length(np.array(rollout_waypoints, np.float32), self.n_frame_max),
+            'rollout_progress': self._pad_to_length(np.array(rollout_progress, np.float32),
+                                                    self.n_frame_max),
+            'rollout_waypoints': self._pad_to_length(np.array(rollout_waypoints, np.float32),
+                                                     self.n_frame_max),
 
             # These are used for end-to-end models where the embedding encoder is jointly learned.
             'demo_traj_len': len(imgs),
