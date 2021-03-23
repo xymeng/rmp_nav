@@ -111,56 +111,17 @@ class ProgressTrackerEndToEnd(ProgressTrackerBase):
 
         mv = self.g.model_variant
 
-        if mv == 'context' or mv == 'context_feedforward':
-            context_features = nets['img_pair_encoder'](
-                ob.unsqueeze(1).expand_as(target).contiguous().view(
-                    context_len, ob_c, ob_h, ob_w),
-                target.view(context_len, ob_c, ob_h, ob_w)
-            ).view(1, context_len, -1)
-            return nets['conv_encoder'](context_features.transpose(1, 2))  # 1 x D
-
-        elif mv.startswith('context_lite'):
-            if mv == 'context_lite':
-                target_feature = nets['img_encoder'](target.view(context_len, ob_c, ob_h, ob_w))  # context_len x D
-                target_feature = nets['conv_encoder'](target_feature.unsqueeze(0).transpose(1, 2))  # 1 x D
-                ob_feature = nets['img_encoder'](ob)  # 1 x D
-                return nets['context_dim_reduction'](torch.cat([ob_feature, target_feature], dim=-1))
-            elif mv == 'context_lite_v2':
-                target_feature = nets['img_encoder'](
-                    target.view(context_len, ob_c, ob_h, ob_w)).view(1, -1)
-                ob_feature = nets['img_encoder'](ob)  # 1 x D
-                return nets['context_dim_reduction'](torch.cat([ob_feature, target_feature], dim=-1))
-
-            elif mv == 'context_lite_v3':
-                target_feature = nets['img_encoder'](
-                    target.view(context_len, ob_c, ob_h, ob_w)).view(1, context_len, -1)  # 1 x context_len x D
-                ob_feature = nets['img_encoder'](ob).unsqueeze(1).expand_as(target_feature)
-                ob_target_feature = torch.cat([ob_feature, target_feature], dim=-1)  # 1 x context_len x D2
-                conv_features = nets['conv_encoder'](ob_target_feature.transpose(1, 2))
-                return conv_features.view(1, -1)
-
-            elif mv == 'context_lite_v4':
-                target_feature = nets['img_encoder'](
-                    target.view(context_len, ob_c, ob_h, ob_w)).view(1, context_len, -1)  # 1 x context_len x D
-                ob_feature = nets['img_encoder'](ob).unsqueeze(1).expand_as(target_feature)
-                ob_target_feature = torch.cat([ob_feature, target_feature, ob_feature - target_feature], dim=-1)
-                conv_features = nets['conv_encoder'](ob_target_feature.transpose(1, 2))
-                return conv_features.view(1, -1)
-
-            elif mv == 'context_lite_v5':
-                target_feature = nets['img_encoder'](target.view(context_len, ob_c, ob_h, ob_w))
-                # target_feature is of size context_len x d x s x s
-                ob_feature = nets['img_encoder'](ob).expand_as(target_feature)
-                pair_feature = nets['feature_map_pair_encoder'](ob_feature, target_feature)  # context_len x d
-                conv_feature = nets['conv_encoder'](pair_feature.unsqueeze(0).transpose(1, 2))
-                assert conv_feature.dim() == 2, conv_feature.size()
-                return conv_feature
-
-            else:
-                raise RuntimeError('Unknown model variant %s' % mv)
+        if mv == 'default' or mv == 'context_lite_v5':
+            target_feature = nets['img_encoder'](target.view(context_len, ob_c, ob_h, ob_w))
+            # target_feature is of size context_len x d x s x s
+            ob_feature = nets['img_encoder'](ob).expand_as(target_feature)
+            pair_feature = nets['feature_map_pair_encoder'](ob_feature, target_feature)  # context_len x d
+            conv_feature = nets['conv_encoder'](pair_feature.unsqueeze(0).transpose(1, 2))
+            assert conv_feature.dim() == 2, conv_feature.size()
+            return conv_feature
 
         else:
-            raise ValueError('Unknown model variant %s' % mv)
+            raise RuntimeError('Unknown model variant %s' % mv)
 
     def _embedding_encode_step(self, ob, caller_id):
         # Encode one step
