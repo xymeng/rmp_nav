@@ -204,10 +204,12 @@ class Evaluator(object):
 
         tracker.reset()
 
-        if tracker.__class__.__name__ == 'ProgressTrackerRPF':
+        if tracker.__class__.__name__ == 'TrackerRPF':
             embedding = tracker.compute_traj_embedding(obs)
-        else:
+        elif tracker.__class__.__name__ == 'TrackerCBE':
             embedding = tracker.compute_traj_embedding(obs)[-1]
+        else:
+            raise RuntimeError('Unknown tracker class:', tracker.__class__.__name__)
 
         if self.jitter:
             self._jitter(self.agent)

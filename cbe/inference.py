@@ -1,5 +1,4 @@
 import torch
-import math
 import copy
 import yaml
 import zmq
@@ -13,7 +12,6 @@ import msgpack_numpy
 msgpack_numpy.patch()
 
 from rmp_nav.common.utils import pprint_dict
-from rmp_nav.common.math_utils import rotate_2d
 
 from . import networks
 
@@ -28,7 +26,7 @@ def make_nets(specs, device):
     return ret
 
 
-class ProgressTrackerBase(object):
+class TrackerBase(object):
     def __init__(self, weights_file, device='cuda'):
         self.weights_file = weights_file
         if weights_file:
@@ -59,8 +57,7 @@ class ProgressTrackerBase(object):
         self.nets = nets
 
     def reload(self, new_weights_file):
-        # Reload weights. Useful for dagger training.
-        # TODO: note that this doesn't reload the traj embedding for ProgressTrackerV2.
+        # Reload weights. Used for dagger training.
         if self.weights_file == new_weights_file:
             return
 
@@ -71,9 +68,9 @@ class ProgressTrackerBase(object):
         self._load(new_weights_file, self.device)
 
 
-class ProgressTrackerEndToEnd(ProgressTrackerBase):
+class TrackerCBE(TrackerBase):
     def __init__(self, *args, **kwargs):
-        super(ProgressTrackerEndToEnd, self).__init__(*args, **kwargs)
+        super(TrackerCBE, self).__init__(*args, **kwargs)
         self.state_cache = {}
 
     def count_parameters(self):
@@ -217,9 +214,9 @@ class ProgressTrackerEndToEnd(ProgressTrackerBase):
             self.state_cache.pop(caller_id)
 
 
-class ProgressTrackerRPF(ProgressTrackerBase):
+class TrackerRPF(TrackerBase):
     def __init__(self, *args, **kwargs):
-        super(ProgressTrackerRPF, self).__init__(*args, **kwargs)
+        super(TrackerRPF, self).__init__(*args, **kwargs)
         self.state_cache = {}
 
     def compute_traj_embedding(self, obs):
@@ -307,7 +304,7 @@ class Client(object):
             self.g = copy.deepcopy(state_dict.get('global_args', {}))
 
         if server_addr is None:
-            self.addr = 'ipc:///tmp/cbe_inference-frontend-%s' % str(time.time())
+            self.addr = 'ipc:///tmp/tracker_inference-frontend-%s' % str(time.time())
             self.proc = self.launch_server(weights_file, self.addr)
         else:
             self.addr = server_addr
@@ -399,6 +396,6 @@ def find_tracker(weights_file):
     g = state_dict.get('global_args', {})
 
     if 'rpf' in g.model_file:
-        return ProgressTrackerRPF
+        return TrackerRPF
 
-    return ProgressTrackerEndToEnd
+    return TrackerCBE

@@ -105,7 +105,7 @@ if __name__ == '__main__':
         backend.setsockopt(zmq.SNDHWM, 0)
         backend.setsockopt(zmq.LINGER, 0)
 
-        backend_addr = 'ipc:///tmp/progress_tracker_inference-backend-%s' % str(time.time())
+        backend_addr = 'ipc:///tmp/tracker_inference-backend-%s' % str(time.time())
         backend.bind(backend_addr)
 
         backend_procs = []
