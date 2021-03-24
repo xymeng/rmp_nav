@@ -253,6 +253,7 @@ class DatasetDagger(DatasetBase):
                  steps_margin=50,
                  reach_overlap_thres: Tuple[float, float] = (0.6, 0.6),
                  divergence_thres=1.0,
+                 rand_rollout_sampling=True,
                  local_inference=False,
                  tracker_server_addr=None,
                  **kwargs):
@@ -261,6 +262,7 @@ class DatasetDagger(DatasetBase):
         :param jitter:
         :param reach_overlap_thres:
         :param divergence_thres:
+        :param rand_rollout_sampling: True to randomly sample rollout samples.
         :param local_inference: if True will create the inference models directly.
                Useful with dataset_server.
         :param tracker_server_addr: if specified then will connect to this tracker server.
@@ -283,6 +285,8 @@ class DatasetDagger(DatasetBase):
         self.steps_margin = steps_margin
 
         self.divergence_thres = divergence_thres
+        self.rand_rollout_sampling = rand_rollout_sampling
+
         self.worker_id = 0  # Will be updated by dataloader.
         self.local_inference = local_inference
 
@@ -490,7 +494,6 @@ class DatasetDagger(DatasetBase):
         step_idx = 0
         while step_idx < max_steps:
             n_step = self.rng.randint(1, self.frame_interval + 1)  # Randomize step size
-            noise_scale = math.sqrt(n_step / float(self.frame_interval))
 
             obs.append(ob)
             closest_idx = self._find_closest_traj_sample_idx(agent.pos, positions)
@@ -506,9 +509,6 @@ class DatasetDagger(DatasetBase):
 
             pred_progress, wp = self.tracker.step2(start_ob, goal_ob, embedding, ob, self.worker_id)
             pred_progresses.append(pred_progress)
-
-            # prev_pos = np.array(agent.pos, copy=True)
-            # prev_heading = float(agent.heading)
 
             if not step_agent(wp):
                 break
@@ -532,8 +532,11 @@ class DatasetDagger(DatasetBase):
 
         # The number of rollout samples can be larger than n_frame_max.
         # We draw n_frame_max samples here.
-        idxs = sorted(self.rng.choice(
-            len(obs), size=min(self.n_frame_max, len(obs)), replace=False))
+        if self.rand_rollout_sampling:
+            idxs = sorted(self.rng.choice(
+                len(obs), size=min(self.n_frame_max, len(obs)), replace=False))
+        else:
+            idxs = np.arange(min(self.n_frame_max, len(obs)))
 
         if self.debug:
             print('max_steps:', max_steps)
