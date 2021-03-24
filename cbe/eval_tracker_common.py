@@ -204,7 +204,10 @@ class Evaluator(object):
 
         tracker.reset()
 
-        embedding = tracker.compute_traj_embedding(obs)[-1]
+        if tracker.__class__.__name__ == 'ProgressTrackerRPF':
+            embedding = tracker.compute_traj_embedding(obs)
+        else:
+            embedding = tracker.compute_traj_embedding(obs)[-1]
 
         if self.jitter:
             self._jitter(self.agent)
