@@ -1,0 +1,19 @@
+envs:  # Note that values must be string!
+  MKL_NUM_THREADS: '1'
+
+generator_cmds:
+  Calavo: [
+    'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Calavo --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=0 --bind=False',
+  ]
+  Frierson: [
+    'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Frierson --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=0 --bind=False',
+  ]
+  Kendall: [
+    'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Kendall --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=1 --bind=False',
+  ]
+  Ooltewah: [
+    'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Ooltewah --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=1 --bind=False',
+  ]
+  Sultan: [
+    'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Sultan --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=1 --bind=False',
+  ]

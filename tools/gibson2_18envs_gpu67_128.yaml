@@ -1,0 +1,59 @@
+envs:  # Note that values must be string!
+  MKL_NUM_THREADS: '1'
+
+
+generator_cmds:
+  Aldrich: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Aldrich --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=6 --bind=False'
+  ]
+  Alfred: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Alfred --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=6 --bind=False'
+  ]
+  Auburn: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Auburn --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=6 --bind=False'
+  ]
+  Crookston: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Crookston --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=6 --bind=False'
+  ]
+  Crugers: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Crugers --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=6 --bind=False'
+  ]
+  Harkeyville: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Harkeyville --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=6 --bind=False'
+  ]
+  Kingdom: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Kingdom --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=6 --bind=False'
+  ]
+  Lakeville: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Lakeville --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=6 --bind=False'
+  ]
+  Liddieville: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Liddieville --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=6 --bind=False'
+  ]
+  Lindenwood: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Lindenwood --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=7 --bind=False'
+  ]
+  Maguayo: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Maguayo --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=7 --bind=False'
+  ]
+  Marksville: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Marksville --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=7 --bind=False'
+  ]
+  Ruckersville: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Ruckersville --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=7 --bind=False'
+  ]
+  Rutherford: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Rutherford --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=7 --bind=False'
+  ]
+  Sanctuary: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Sanctuary --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=7 --bind=False'
+  ]
+  Seiling: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Seiling --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=7 --bind=False'
+  ]
+  Shellsburg: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Shellsburg --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=7 --bind=False'
+  ]
+  Thrall: [
+      'python -m rmp_nav.simulation.gibson2_sim_server --scene_id=Thrall --resolution=128 --h_fov=2.07 --v_fov=1.87 --gpu=7 --bind=False'
+  ]
