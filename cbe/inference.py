@@ -156,7 +156,8 @@ class ProgressTrackerEndToEnd(ProgressTrackerBase):
         nets = self.nets
         with torch.no_grad():
             ob_th = torch.as_tensor(ob, dtype=torch.float, device=self.device).unsqueeze(0)
-            embedding_th = torch.as_tensor(traj_embedding, dtype=torch.float, device=self.device).unsqueeze(0)
+            embedding_th = torch.as_tensor(traj_embedding,
+                                           dtype=torch.float, device=self.device).unsqueeze(0)
             start_th = torch.as_tensor(start, dtype=torch.float, device=self.device).unsqueeze(0)
             goal_th = torch.as_tensor(goal, dtype=torch.float, device=self.device).unsqueeze(0)
             rollout_embedding = torch.as_tensor(self._embedding_encode_step(ob, caller_id),
@@ -164,7 +165,8 @@ class ProgressTrackerEndToEnd(ProgressTrackerBase):
 
             if self.g.attractor:
                 if self.g.n_context_frame == 0:
-                    # when n_context_frame = 0, the context dimension is not present. We add it back here.
+                    # when n_context_frame = 0, the context dimension is not present.
+                    # We add it back here.
                     start_th = start_th.unsqueeze(1)
                     goal_th = goal_th.unsqueeze(1)
 
@@ -176,7 +178,9 @@ class ProgressTrackerEndToEnd(ProgressTrackerBase):
                 if self.g.get('no_embedding', False):
                     feature = torch.cat([init_start_feature, ob_goal_feature], dim=-1)
                 else:
-                    feature = torch.cat([init_start_feature, ob_goal_feature, rollout_embedding, embedding_th], dim=-1)
+                    feature = torch.cat(
+                        [init_start_feature, ob_goal_feature, rollout_embedding, embedding_th],
+                        dim=-1)
             else:
                 feature = torch.cat([rollout_embedding, embedding_th], dim=-1)
 
@@ -185,7 +189,8 @@ class ProgressTrackerEndToEnd(ProgressTrackerBase):
             pred_progress = nets['progress_regressor'](out.view(-1))
             pred_waypoint = nets['waypoint_regressor'](out.view(-1))
 
-            return pred_progress.item(), pred_waypoint.squeeze(0).data.cpu().numpy(), next_h, init_start_feature
+            return pred_progress.item(), pred_waypoint.squeeze(0).data.cpu().numpy(), \
+                   next_h, init_start_feature
 
     def step(self, start, goal, traj_embedding, ob):
         return self.step2(start, goal, traj_embedding, ob, 'default')
@@ -204,15 +209,79 @@ class ProgressTrackerEndToEnd(ProgressTrackerBase):
 
         return pred_progress, pred_wp
 
-    def predict_reachability(self, ob, start, traj_embedding):
+    def reset(self):
+        self.reset2('default')
+
+    def reset2(self, caller_id):
+        if caller_id in self.state_cache:
+            self.state_cache.pop(caller_id)
+
+
+class ProgressTrackerRPF(ProgressTrackerBase):
+    def __init__(self, *args, **kwargs):
+        super(ProgressTrackerRPF, self).__init__(*args, **kwargs)
+        self.state_cache = {}
+
+    def compute_traj_embedding(self, obs):
+        # obs is N x C x H x W
+        # In RPF, the embedding is featurized observations
         nets = self.nets
         with torch.no_grad():
-            ob_th = torch.as_tensor(ob, dtype=torch.float, device=self.device).unsqueeze(0)
-            embedding_th = torch.as_tensor(traj_embedding, dtype=torch.float, device=self.device).unsqueeze(0)
-            start_th = torch.as_tensor(start, dtype=torch.float, device=self.device).unsqueeze(0)
-            init_start_feature = nets['img_pair_encoder'](ob_th, start_th)
-            r = torch.sigmoid(self.nets['reachability_regressor'](torch.cat([init_start_feature, embedding_th], dim=-1)))
-            return r.item()
+            obs_th = torch.as_tensor(np.array(obs), dtype=torch.float, device=self.device)
+            obs_features = nets['img_encoder'](obs_th)
+            return obs_features.cpu().numpy()
+
+    def _step(self, start, goal, traj_embedding, ob, h, caller_id):
+        nets = self.nets
+        with torch.no_grad():
+            _kw = {'dtype': torch.float32, 'device': self.device}
+            ob_th = torch.as_tensor(ob, **_kw).unsqueeze(0)
+            embedding_th = torch.as_tensor(traj_embedding, **_kw).unsqueeze(0)
+            idxs = torch.arange(len(traj_embedding), **_kw).unsqueeze(0)
+
+            state = self.state_cache.get(caller_id, dict())
+
+            eta = state.get('eta', 0)
+            h = state.get('h', None)
+            ws = torch.exp(-torch.abs(idxs - eta))  # 1 x traj_len
+
+            ob_feature = nets['img_encoder'](ob_th)
+
+            feature_dim = embedding_th.dim() - 2
+
+            attn_features = embedding_th * ws.view(ws.size() + feature_dim * (1,))
+            attn_features = torch.sum(attn_features, dim=1)
+
+            if self.g.model_variant == 'default':
+                features = torch.cat([attn_features, ob_feature], dim=-1)
+            elif self.g.model_variant == 'feature_map':
+                features = nets['feature_map_pair_encoder'](attn_features, ob_feature)
+                # This conv_encoder just acts like a MLP. This is to keep the overall feature
+                # extraction part the same as context_lite_v5
+                features = nets['conv_encoder'](features.unsqueeze(-1))
+
+            h = nets['recurrent_cell'](features, h)
+            pred_waypoint = nets['waypoint_regressor'](h)
+            pred_increment = torch.tanh(nets['increment_regressor'](h)) + 1
+            eta = eta + pred_increment
+
+            eta = torch.clamp(eta, 0.0, len(traj_embedding) - 1)
+
+            state['h'] = h
+            state['eta'] = eta
+            self.state_cache[caller_id] = state
+
+            return 0.0, pred_waypoint.squeeze(0).data.cpu().numpy(), h
+
+    def step(self, start, goal, traj_embedding, ob):
+        return self.step2(start, goal, traj_embedding, ob, 'default')
+
+    def step2(self, start, goal, traj_embedding, ob, caller_id):
+        # Keep track of latent state using caller_id
+        state = self.state_cache.get(caller_id, dict())
+        h = state.get('h', None)
+        pred_progress, pred_wp, h = self._step(start, goal, traj_embedding, ob, h, caller_id)
+        return pred_progress, pred_wp
 
     def reset(self):
         self.reset2('default')
@@ -329,7 +398,7 @@ def find_tracker(weights_file):
     state_dict = torch.load(weights_file, map_location='cpu')
     g = state_dict.get('global_args', {})
 
-    if g.model_variant == 'default':
-        return ProgressTrackerEndToEnd
+    if 'rpf' in g.model_file:
+        return ProgressTrackerRPF
 
-    raise ValueError('Cannot find tracker for %s' % weights_file)
+    return ProgressTrackerEndToEnd

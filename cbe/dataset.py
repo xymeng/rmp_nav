@@ -596,7 +596,6 @@ class DatasetDagger(DatasetBase):
             'rollout_waypoints': self._pad_to_length(np.array(rollout_waypoints, np.float32),
                                                      self.n_frame_max),
 
-            # These are used for end-to-end models where the embedding encoder is jointly learned.
             'demo_traj_len': len(imgs),
             'demo_obs': self._pad_to_length(np.array(imgs), self.n_frame_max),
             'demo_start_ob': start_ob,
@@ -615,6 +614,203 @@ class DatasetDagger(DatasetBase):
 class DatasetGibson2TrajsDagger(DatasetDagger, DatasetGibson2Traj):
     def __init__(self, *args, **kwargs):
         super(DatasetGibson2TrajsDagger, self).__init__(*args, **kwargs)
+        self.maps = make_maps_gibson2(self.assets_dir, self.map_names)
+
+
+class DatasetDaggerRPF(DatasetDagger):
+    def __init__(self, n_rollout_frame=64, **kwargs):
+        super(DatasetDaggerRPF, self).__init__(**kwargs)
+        self.n_rollout_frame = n_rollout_frame
+
+    def _gen_rollout(self, positions, headings, waypoints_global, start_ob, goal_ob,
+                     embedding, map_name):
+        self.tracker.reset2(self.worker_id)
+
+        map = self.maps[map_name]
+
+        positions = np.array(positions)
+        headings = np.array(headings)
+
+        agent = self.agent
+        agent.reset()
+
+        agent.set_map(map)
+        agent.set_pos(positions[0])
+        agent.set_heading(headings[0])
+
+        def randomize_2nd_order_state():
+            # FIXME: this is only applicable to a car-like vehicle
+            velocity = self.rng.uniform(0.0, 0.5) * np.array([math.cos(headings[0]), math.sin(headings[0])], np.float32)
+            agent.set_velocity(velocity)
+            angular_vel = self.rng.uniform(0, math.pi)
+            agent.set_angular_vel(angular_vel)
+            # A small hack to set the right steering value.
+            agent.steering = agent.infer_steering(agent.get_signed_velocity_norm(), angular_vel)
+
+        if self.jitter:
+            if self.rng.uniform() < self.jitter_prob:
+                self._jitter(self.agent)
+
+        if self.jitter_velocity:
+            randomize_2nd_order_state()
+
+        if self.debug:
+            print('map_name:', map_name)
+            print('agent_pos:', agent.pos)
+            print('agent_heading:', agent.heading)
+            print('collision:', agent.collide(self.jitter_collision_tolerance,
+                                              self.jitter_collision_inflation))
+
+        heading_diff = headings[0] - agent.heading
+
+        goal_pos = positions[-1]
+        goal_heading = headings[-1]
+        agent.set_waypoints([goal_pos])  # Used for checking reach condition.
+
+        ob = self.render(agent.pos, agent.heading, map_name,
+                         camera_z=self.rollout_camera_z,
+                         h_fov=self.rollout_fov[0],
+                         v_fov=self.rollout_fov[1])
+
+        cum_path_len = np.array([0.0] + cum_path_length(positions).tolist())
+        path_len = cum_path_len[-1]
+
+        obs = []
+        pred_progresses = []
+        gt_progresses = []
+        gt_waypoints = []
+        gt_reachable = 0.0
+
+        def step_agent(wp):
+            wp_global = agent.local_to_global(wp)
+            for i in range(n_step):
+                agent.step(0.1, waypoint=agent.global_to_local(wp_global))
+                if agent.collide():
+                    return False
+            return True
+
+        def check_status():
+            # Check if reached using overlap estimation
+            if self._overlap_reach(agent.pos, agent.heading, goal_pos, goal_heading,
+                                   map, self.reach_overlap_thres):
+                return 'reached'
+
+            if agent.reached_goal(relax=1.0):
+                return 'reached'
+
+            # Check divergence
+            if np.linalg.norm(agent.pos - positions[closest_idx], ord=2) > self.divergence_thres:
+                return 'fail'
+
+            # Check overlap between current observation and the closest trajectory ob
+            # FIXME: this might not be a good thing if we train with dynamic obstacles.
+            if not self._overlap_reach(
+                    agent.pos, agent.heading, positions[closest_idx], headings[closest_idx],
+                    map, (0.1, 0.1)):
+                return 'fail'
+
+            return 'following'
+
+        max_steps = len(positions) * self.frame_interval
+        max_steps = max(max_steps * 2, self.steps_margin)  # Give 100% more timesteps.
+
+        step_idx = 0
+        while step_idx < max_steps:
+            n_step = self.frame_interval
+            obs.append(ob)
+            closest_idx = self._find_closest_traj_sample_idx(agent.pos, positions)
+
+            gt_progress = cum_path_len[closest_idx] / path_len
+            gt_progresses.append(gt_progress)
+
+            gt_wp = agent.global_to_local(waypoints_global[closest_idx])
+            if self.normalize_waypoint:
+                dist_to_goal = np.linalg.norm(agent.pos - positions[-1])
+                gt_wp = self._normalize_waypoint(gt_wp, dist_to_goal)
+            gt_waypoints.append(gt_wp)
+
+            pred_progress, wp = self.tracker.step2(None, None, embedding, ob, self.worker_id)
+            pred_progresses.append(pred_progress)
+
+            if not step_agent(wp):
+                break
+
+            status = check_status()
+            if status == 'reached':
+                gt_reachable = 1.0
+                break
+            elif status == 'fail':
+                gt_reachable = 0.0
+                break
+
+            ob = self.render(agent.pos, agent.heading, map_name,
+                             camera_z=self.rollout_camera_z,
+                             h_fov=self.rollout_fov[0],
+                             v_fov=self.rollout_fov[1])
+
+            step_idx += n_step
+
+        assert len(obs) == len(gt_progresses)
+        assert len(obs) == len(gt_waypoints)
+
+        idxs = list(range(0, min(self.n_rollout_frame, len(obs))))
+
+        if self.debug:
+            print('max_steps:', max_steps)
+            print('idxs', idxs)
+
+        obs_samples = np.array(obs, np.float32)[idxs]
+        gt_progresses_samples = np.array(gt_progresses, np.float32)[idxs]
+        gt_waypoints_samples = np.array(gt_waypoints, np.float32)[idxs]
+
+        return (obs_samples,
+                gt_progresses_samples, gt_waypoints_samples, gt_reachable, heading_diff)
+
+    def __getitem__(self, idx):
+        self._init_once(idx)
+        if time.time() - self.last_heap_trim_time > self.heap_trim_interval:
+            self._malloc_trim()
+            self.last_heap_trim_time = time.time()
+
+        dataset_idx, traj_id, traj, map_name, samples, dense_samples = \
+            self._get_sample(idx)
+
+        imgs, positions, headings, waypoints_global, _ = \
+            self._render_demo_samples(map_name, samples)
+
+        embedding = self.tracker.compute_traj_embedding(imgs)
+
+        (rollout_obs,
+         rollout_progress,
+         rollout_waypoints,
+         rollout_reachable,
+         heading_diff) = self._gen_rollout(
+            positions, headings, waypoints_global, None, None, embedding, map_name)
+
+        mask = np.ones(self.n_rollout_frame, np.float32)
+        mask[len(rollout_obs):] = 0.0
+
+        demo_mask = np.ones(self.n_frame_max, np.float32)
+        demo_mask[len(imgs):] = 0.0
+
+        return {
+            'map_name': map_name,
+            'traj_len': len(rollout_obs),
+            'rollout_obs': self._pad_to_length(np.array(rollout_obs), self.n_frame_max),
+            'rollout_mask': mask,
+            'rollout_waypoints': self._pad_to_length(np.array(rollout_waypoints, np.float32),
+                                                     self.n_frame_max),
+
+            'demo_traj_len': len(imgs),
+            'demo_obs': self._pad_to_length(np.array(imgs), self.n_frame_max),
+            'demo_mask': demo_mask,
+            'reachability': np.array([rollout_reachable], np.float32),
+        }
+
+
+class DatasetGibson2TrajsDaggerRPF(DatasetDaggerRPF, DatasetGibson2Traj):
+    def __init__(self, *args, **kwargs):
+        super(DatasetGibson2TrajsDaggerRPF, self).__init__(*args, **kwargs)
         self.maps = make_maps_gibson2(self.assets_dir, self.map_names)
 
 

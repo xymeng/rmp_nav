@@ -31,22 +31,34 @@ class ImagePairEncoderV2(nn.Module):
         return x.view(x.size(0), -1)
 
 
-class ImageEncoderV4(nn.Module):
-    def __init__(self, input_channels=3, init_scale=1.0,
+class ImageEncoderV3(nn.Module):
+    def __init__(self, input_channels=3, output_dim=512, init_scale=1.0, residual_link=False,
                  no_weight_init=False, init_method='ortho', activation='relu'):
-        super(ImageEncoderV4, self).__init__()
+        super(ImageEncoderV3, self).__init__()
+        self.residual_link = residual_link
         self.activation = activation
 
         # Input: 3 x 64 x 64
-        self.conv1 = nn.Conv2d(input_channels, 32, kernel_size=5, stride=2)
+        self.conv1 = nn.Conv2d(input_channels, output_dim // 8, kernel_size=5, stride=2)
+        if residual_link:
+            self.res_fc1 = nn.Conv2d(output_dim // 8, output_dim // 4, kernel_size=1, stride=2)
+
         # 30 x 30
-        self.conv2 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
+        self.conv2 = nn.Conv2d(output_dim // 8, output_dim // 4, kernel_size=5, stride=2)
+        if residual_link:
+            self.res_fc2 = nn.Conv2d(output_dim // 4, output_dim // 2, kernel_size=1, stride=2)
+
         # 13 x 13
-        self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
+        self.conv3 = nn.Conv2d(output_dim // 4, output_dim // 2, kernel_size=5, stride=2)
+        if residual_link:
+            self.res_fc3 = nn.Conv2d(output_dim // 2, output_dim, kernel_size=1, stride=1)
+
         # 5 x 5
+        self.conv4 = nn.Conv2d(output_dim // 2, output_dim, kernel_size=5, stride=1)
+        # 1 x 1
 
         if not no_weight_init:
-            for layer in (self.conv1, self.conv2, self.conv3):
+            for layer in (self.conv1, self.conv2, self.conv3, self.conv4):
                 if init_method == 'ortho':
                     nn.init.orthogonal_(layer.weight, init_scale)
                 elif init_method == 'normal':
@@ -63,11 +75,19 @@ class ImageEncoderV4(nn.Module):
             ac = torch.tanh
         else:
             raise RuntimeError()
-        x = ac(self.conv1(imgs))
-        x = ac(self.conv2(x))
-        x = ac(self.conv3(x))  # output_dim x 5 x 5
 
-        return x
+        if self.residual_link:
+            x = ac(self.conv1(imgs))
+            x = ac(self.res_fc1(x[:, :, 2:-2, 2:-2]) + self.conv2(x))
+            x = ac(self.res_fc2(x[:, :, 2:-2, 2:-2]) + self.conv3(x))
+            x = ac(self.res_fc3(x[:, :, 2:-2, 2:-2]) + self.conv4(x))
+        else:
+            x = ac(self.conv1(imgs))
+            x = ac(self.conv2(x))
+            x = ac(self.conv3(x))
+            x = ac(self.conv4(x))
+
+        return x.view(x.size(0), -1)
 
 
 class FeatureMapPairEncoderV2(nn.Module):
@@ -172,3 +192,23 @@ class MLPRegressorV2(nn.Module):
             x = F.relu(fc(x))
         x = self.fcs[-1](x)
         return x
+
+
+class GRUCell(nn.Module):
+    def __init__(self, input_size, hidden_size, init_scale=1.0, no_weight_init=False):
+        super(GRUCell, self).__init__()
+
+        self.recurrent = nn.GRUCell(input_size, hidden_size)
+
+        if not no_weight_init:
+            for name, param in self.recurrent.named_parameters():
+                if 'weight' in name:
+                    nn.init.orthogonal_(param, init_scale)
+                    weight_inited = True
+                elif 'bias' in name:
+                    with torch.no_grad():
+                        param.zero_()
+            assert weight_inited
+
+    def forward(self, x, h=None):
+        return self.recurrent(x, h)

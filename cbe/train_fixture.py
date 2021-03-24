@@ -368,3 +368,226 @@ def train_simple(nets, net_opts, dataset, dagger_dataset_constructor, vis, globa
         if epoch % save_interval == 0:
             print('saving model...')
             _save_model(nets, net_opts, epoch, global_args, model_file)
+
+
+def train_rpf(nets, net_opts, dataset, dagger_dataset_constructor, vis, global_args):
+    (
+        model_file,
+        max_epochs,
+        batch_size,
+        n_worker,
+        log_interval,
+        vis_interval,
+        save_interval,
+        train_device,
+        resume,
+        model_variant,
+    ) = [global_args[_] for _ in ['model_file',
+                                  'max_epochs',
+                                  'batch_size',
+                                  'n_dataset_worker',
+                                  'log_interval',
+                                  'vis_interval',
+                                  'save_interval',
+                                  'train_device',
+                                  'resume',
+                                  'model_variant']]
+    epoch = 0
+    if resume:
+        epoch = _load_weights(model_file, nets, net_opts)
+        torch.manual_seed(231239 + epoch)
+        print('loaded saved state. epoch: %d' % epoch)
+
+    # FIXME: hack to mitigate the bug in torch 1.1.0's schedulers
+    # TODO: should we remove this now?
+
+    if epoch == 0:
+        last_epoch = -1
+    else:
+        last_epoch = epoch
+
+    net_scheds = {
+        name: torch.optim.lr_scheduler.StepLR(
+            opt,
+            step_size=global_args['lr_decay_epoch'],
+            gamma=global_args['lr_decay_rate'],
+            last_epoch=last_epoch)
+        for name, opt in net_opts.items()
+    }
+
+    samples_per_epoch = global_args['samples_per_epoch']
+
+    def train_helper(dataset, start_global_step, n_samples, dagger_training):
+        sampler = RandomSampler(dataset, replacement=True, num_samples=n_samples)
+        loader = DataLoader(
+            dataset, batch_size=batch_size, sampler=sampler, num_workers=n_worker,
+            pin_memory=True, drop_last=True, worker_init_fn=_worker_init)
+        last_log_time = time.time()
+
+        for idx, batch_data in enumerate(loader):
+            for _, opt in net_opts.items():
+                opt.zero_grad()
+
+            # In behavior-cloning phase, these are the demonstrations.
+            # In dagger phase, these are the rollouts.
+            batch_obs = batch_data['rollout_obs'].to(device=train_device, non_blocking=True)
+
+            ob_c, ob_h, ob_w = batch_obs.size()[2:]
+
+            if idx % vis_interval == 0:
+                vis.images(batch_data['demo_obs'][:8, :8].contiguous().view(-1, ob_c, ob_h, ob_w),
+                           nrow=8,
+                           win='batch_demo_obs', opts={'title': 'demo_obs'})
+                vis.images(batch_data['rollout_obs'][:8, :8].contiguous().view(-1, ob_c, ob_h, ob_w),
+                           nrow=8,
+                           win='batch_rollout_obs', opts={'title': 'rollout_obs'})
+
+            if model_variant in ('default', 'feature_map'):
+                loss = 0
+
+                def extract_ob_features(obs):
+                    ob_len = obs.size(1)
+                    out = nets['img_encoder'](
+                        obs.view(ob_len * batch_size, ob_c, ob_h, ob_w))
+                    return out.view((batch_size, ob_len) + out.size()[1:])
+
+                if dagger_training:
+                    # In dagger mode, demo obs and rollout obs are different.
+                    batch_demo_obs = batch_data['demo_obs'].to(device=train_device, non_blocking=True)
+                    batch_mask = batch_data['rollout_mask'].to(device=train_device, non_blocking=True)
+                    batch_waypoints = batch_data['rollout_waypoints'].to(device=train_device, non_blocking=True)
+
+                    rollout_len = batch_obs.size(1)
+                    demo_len = batch_demo_obs.size(1)
+                    demo_features = extract_ob_features(batch_demo_obs)
+                    rollout_features = extract_ob_features(batch_obs)
+                else:
+                    # In behavior-cloning mode, demo obs and rollout obs are the same.
+                    batch_mask = batch_data['demo_mask'].to(device=train_device, non_blocking=True)
+                    batch_waypoints = batch_data['demo_waypoints'].to(device=train_device, non_blocking=True)
+
+                    rollout_len = batch_obs.size(1)
+                    demo_len = rollout_len
+                    demo_features = extract_ob_features(batch_obs)
+                    rollout_features = extract_ob_features(batch_obs)
+
+                idxs = torch.arange(demo_len, dtype=torch.float32, device=train_device)[None].expand(
+                    (batch_size, demo_len))
+
+                eta = torch.zeros((batch_size, 1), dtype=torch.float32, device=train_device)
+                etas = []
+                hs = None
+
+                stepwise_waypoint_losses = []
+
+                for i in range(rollout_len):
+                    ws = torch.exp(-torch.abs(idxs - eta))  # batch_size x demo_len
+
+                    # demo_features is of size batch_size x demo_len x (c1 x c2 ...)
+                    # where c1 x c2 ... are feature dimensions
+                    feature_dims = demo_features.dim() - 2
+
+                    attn_features = demo_features * ws.view(ws.size() + feature_dims * (1,))
+                    attn_features = torch.sum(attn_features, dim=1)
+
+                    if model_variant == 'default':
+                        features = torch.cat([attn_features, rollout_features[:, i]], dim=-1)
+                    elif model_variant == 'feature_map':
+                        features = nets['feature_map_pair_encoder'](
+                            attn_features, rollout_features[:, i])
+                        # This conv_encoder just acts like a MLP. This is to keep the overall feature
+                        # extraction part the same as context_lite_v5
+                        features = nets['conv_encoder'](features.unsqueeze(-1))
+
+                    hs = nets['recurrent_cell'](features, hs)
+
+                    pred_waypoints = nets['waypoint_regressor'](hs)
+                    pred_increment = torch.tanh(nets['increment_regressor'](hs)) + 1
+                    eta = torch.clamp(eta + pred_increment, 0.0, demo_len - 1)
+
+                    etas.append(eta)
+
+                    assert pred_waypoints.size() == batch_waypoints[:, i].size()
+
+                    stepwise_waypoint_losses.append(
+                        torch.norm(pred_waypoints - batch_waypoints[:, i], p=2, dim=-1))
+
+                waypoint_loss = torch.stack(stepwise_waypoint_losses, dim=1)  # batch_size x max_traj_len
+                assert waypoint_loss.size() == batch_mask.size()
+                waypoint_loss = torch.mean(waypoint_loss * batch_mask)
+
+            else:
+                raise RuntimeError('Unknown model variant %s' % model_variant)
+
+            loss = loss + waypoint_loss
+            loss.backward()
+
+            for _, opt in net_opts.items():
+                opt.step()
+
+            if idx % log_interval == 0:
+                print('epoch %d batch time %.2f sec loss: %6.2f' % (
+                    epoch, (time.time() - last_log_time) / log_interval, loss.item()))
+                print('learning rate:\n%s' % tabulate.tabulate([
+                    (name, opt.param_groups[0]['lr']) for name, opt in net_opts.items()]))
+
+                for name, net in nets.items():
+                    print('%s weights:\n%s' % (name, module_weights_stats(net)))
+
+                for name, net in nets.items():
+                    print('%s grad:\n%s' % (name, module_grad_stats(net)))
+
+                global_step = start_global_step + idx * batch_size
+
+                vis.line(X=np.array([global_step]),
+                         Y=np.array([waypoint_loss.item()]),
+                         win='waypoint_loss', update='append', opts={'title': 'waypoint_loss'})
+
+                etas = torch.cat(etas, dim=-1).data.cpu()  # batch_size x max_traj_len
+                print('etas:\n%s' % tabulate.tabulate(etas[:3].tolist(), floatfmt='.2f'))
+
+                vis.line(X=np.array([global_step]),
+                         Y=np.array([loss.item()]),
+                         win='loss', update='append', opts={'title': 'loss'})
+
+                if dagger_training:
+                    vis.line(X=np.array([global_step]),
+                             Y=np.array([np.mean(batch_data['reachability'].cpu().numpy())]),
+                             win='fraction reached', update='append',
+                             opts={'title': 'fraction reached'})
+
+                last_log_time = time.time()
+                vis.save([vis.env])
+
+    while True:
+        print('===== epoch %d =====' % epoch)
+
+        dagger_start_epoch = global_args['dagger_epoch']
+        if dagger_start_epoch <= epoch and dagger_dataset_constructor is not None:
+            n_dagger_samples = global_args['dagger_init'] + (epoch - dagger_start_epoch) * global_args['dagger_inc']
+            n_dagger_samples = min(n_dagger_samples, samples_per_epoch)
+            print('dagger training %d samples' % n_dagger_samples)
+            dagger_dataset = dagger_dataset_constructor(epoch)
+            train_helper(dagger_dataset, epoch * samples_per_epoch, n_dagger_samples, True)
+            del dagger_dataset
+        else:
+            n_dagger_samples = 0
+
+        n_samples = samples_per_epoch - n_dagger_samples
+        if n_samples > 0:
+            print('normal training %d samples' % n_samples)
+            train_helper(dataset, epoch * samples_per_epoch + n_dagger_samples, n_samples, False)
+        else:
+            print('skip normal training because dagger has used up all samples.')
+
+        for _, sched in net_scheds.items():
+            sched.step()
+
+        epoch += 1
+
+        if epoch % save_interval == 0:
+            print('saving model...')
+            _save_model(nets, net_opts, epoch, global_args, model_file)
+
+        if epoch >= max_epochs:
+            break

@@ -1,0 +1,40 @@
+img_encoder:
+  class: ImageEncoderV3
+  opt: Adam
+  opt_kwargs:
+    lr: 3.0e-4
+    eps: 1.0e-5
+
+
+recurrent_cell:
+  class: GRUCell
+  net_kwargs:
+    input_size: 1024
+    hidden_size: 1024
+    init_scale: 1.0
+  opt: Adam
+  opt_kwargs:
+    lr: 3.0e-4
+    eps: 1.0e-5
+
+
+increment_regressor:
+  class: MLPRegressorV2
+  net_kwargs:
+    dims: [1024, 512, 1]
+    init_scale: 1.0
+  opt: Adam
+  opt_kwargs:
+    lr: 3.0e-4
+    eps: 1.0e-5
+
+
+waypoint_regressor:
+  class: MLPRegressorV2
+  net_kwargs:
+    dims: [1024, 512, 2]
+    init_scale: 1.0
+  opt: Adam
+  opt_kwargs:
+    lr: 3.0e-4
+    eps: 1.0e-5
