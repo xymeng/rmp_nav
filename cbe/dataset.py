@@ -2,7 +2,6 @@ import math
 import time
 from typing import Tuple
 
-import cv2
 import numpy as np
 import zmq
 
@@ -530,8 +529,15 @@ class DatasetDagger(DatasetBase):
         assert len(obs) == len(gt_progresses)
         assert len(obs) == len(gt_waypoints)
 
-        # The number of rollout samples can be larger than n_frame_max.
-        # We draw n_frame_max samples here.
+        # The number of rollout samples can be larger than n_frame_max. We draw n_frame_max samples here.
+        # Setting rand_rollout_sampling to True will draw random samples from the observations.
+        # Good: 1. can encoder longer sequence at no extra cost 2. data augmentation
+        # Bad: 1. adjacent samples may be far apart which can mess up with the encoder
+        # My experience is that setting rand_rollout_sampling to True improves generalization on
+        # sequences longer than what are seen during training. For shorter sequences setting it
+        # to True or False does not have a noticeable difference.
+        # An alternative to rand_rollout_sampling is to increase self.n_frame_max. However this
+        # will increase training time.
         if self.rand_rollout_sampling:
             idxs = sorted(self.rng.choice(
                 len(obs), size=min(self.n_frame_max, len(obs)), replace=False))
@@ -550,6 +556,8 @@ class DatasetDagger(DatasetBase):
                 gt_progresses_samples, gt_waypoints_samples, gt_reachable, heading_diff)
 
     def __getitem2__(self, idx, extra):
+        # This is called by DatasetClient. It has an "extra" argument containing
+        # additional state information like current weights file.
         self.tracker_weights_file = extra['tracker_weights_file']
         self._init_once(idx)  # This will create the tracker.
         # Note that reload only has effect when tracker weights file has changed.
