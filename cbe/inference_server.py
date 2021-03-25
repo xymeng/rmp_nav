@@ -1,3 +1,4 @@
+import torch
 import zmq
 import sys
 import gflags
@@ -89,6 +90,8 @@ def backend_process(listen_addr, device, identity):
 
 
 if __name__ == '__main__':
+    torch.backends.cudnn.benchmark = True
+
     def run():
         context = zmq.Context()
 

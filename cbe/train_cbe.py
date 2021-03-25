@@ -11,7 +11,7 @@ import visdom
 
 from rmp_nav.common.utils import get_gibson2_asset_dir
 
-from .dataset import (DatasetGibson2Traj, DatasetGibson2TrajsDagger, DatasetClient)
+from .dataset import DatasetGibson2Traj, DatasetClient
 from . import networks
 from . import train_fixture
 from . import args
@@ -34,6 +34,8 @@ def make_nets(specs, device):
 if __name__ == '__main__':
     torch.manual_seed(931238)
     torch.set_num_threads(1)
+
+    torch.backends.cudnn.benchmark = True
 
     gflags.DEFINE_string('model_variant', 'default', '')
     gflags.DEFINE_string('dataset_variant', 'gibson2', '')
