@@ -11,5 +11,5 @@ numpy==1.16.2
 matplotlib==3.1.1
 python_gflags==3.1.2
 msgpack_python==0.5.6
-PyYAML==5.1.2
+PyYAML==5.4
 pyzmq==18.1.0
