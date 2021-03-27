@@ -315,19 +315,22 @@ class Evaluator(object):
         for run_idx in range(n_traj):
             print('run_idx', run_idx)
 
+            # Same traj_idx should produce exactly the same sample.
+            # All rngs should seed using traj_idx.
+            traj_idx = start_idx + run_idx
+            dataset.rng.seed(traj_idx)
+            rng.seed(traj_idx)
+
             # Note that sample_idx is the trajectory index. The actual sample can be different
             # due to random sampling.
-            sample_idx = sample_idxs[(start_idx + run_idx) % len(dataset)]
-
-            # Note that querying the same index of the dataset will result in different trajectory segments to be
-            # sampled.
+            sample_idx = sample_idxs[traj_idx % len(dataset)]
             sample = dataset[sample_idx]
-            # sample = dataset[run_idx % len(dataset)]
 
             map_name = sample['map_name']
             print('map', map_name)
 
             map = self.maps[map_name]
+
             result = self.run_single(sample, map, run_idx)
             outcome = result['outcome']
 
