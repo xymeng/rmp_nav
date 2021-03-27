@@ -45,7 +45,7 @@ def _worker_init(worker_id):
     dataset.worker_id = worker_id
 
 
-def make_embedding(nets, obs, traj_len, global_args):
+def make_embedding(nets, obs, traj_len):
     batch_size, max_traj_len, ob_c, ob_h, ob_w = obs.size()
 
     # ob feature at time t is computed by taking ob_t and ob_{t-1}
@@ -108,10 +108,10 @@ def train_simple(nets, net_opts, dataset, dagger_dataset_constructor, vis, globa
 
     # FIXME: hack to mitigate the bug in torch 1.1.0's schedulers
     # TODO: should we remove this now?
-    if epoch == 0:
-        last_epoch = -1
-    else:
-        last_epoch = epoch
+    # if epoch == 0:
+    #     last_epoch = -1
+    # else:
+    last_epoch = epoch
 
     net_scheds = {
         name: torch.optim.lr_scheduler.StepLR(
@@ -162,23 +162,23 @@ def train_simple(nets, net_opts, dataset, dagger_dataset_constructor, vis, globa
 
             # Train the embedding and the controller jointly.
             if dagger_training:
-                demo_embedding = make_embedding(nets, batch_demo_obs, batch_demo_traj_len, global_args)
+                demo_embedding = make_embedding(nets, batch_demo_obs, batch_demo_traj_len)
 
                 rollout_traj_len = batch_data['rollout_traj_len'].to(device=train_device, non_blocking=True)
                 rollout_mask = batch_data['rollout_mask'].to(device=train_device, non_blocking=True)
                 rollout_progress = batch_data['rollout_progress'].to(device=train_device, non_blocking=True)
                 rollout_waypoints = batch_data['rollout_waypoints'].to(device=train_device, non_blocking=True)
 
-                rollout_embedding = make_embedding(nets, batch_rollout_obs, rollout_traj_len, global_args)
+                rollout_embedding = make_embedding(nets, batch_rollout_obs, rollout_traj_len)
 
                 rollout_stepwise_embeddings = rollout_embedding['obs_embedding']
                 traj_embedding = demo_embedding['traj_embedding']
 
             else:
                 # In behavior cloning mode, demo and rollout are the same except for the observations
-                # (camera z could be different)
-                demo_embedding = make_embedding(nets, batch_demo_obs, batch_demo_traj_len, global_args)
-                rollout_embedding = make_embedding(nets, batch_rollout_obs, batch_demo_traj_len, global_args)
+                # (camera z and fov could be different)
+                demo_embedding = make_embedding(nets, batch_demo_obs, batch_demo_traj_len)
+                rollout_embedding = make_embedding(nets, batch_rollout_obs, batch_demo_traj_len)
 
                 batch_demo_progress = batch_data['demo_progress'].to(device=train_device, non_blocking=True)
                 batch_demo_waypoints = batch_data['demo_waypoints'].to(device=train_device, non_blocking=True)
