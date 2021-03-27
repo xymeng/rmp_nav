@@ -152,8 +152,6 @@ if __name__ == '__main__':
 
     print('dataset options:\n%r' % dataset)
 
-    train_funcs.items()
-
     train_funcs[g.model_variant](
         nets={
             name: spec['net'] for name, spec in nets.items()
