@@ -30,13 +30,11 @@ class DatasetBase(DatasetVisual):
                  debug=False, **kwargs):
         """
         :param args:
-        :param traj_embedding_weights_file: Can be None. If None, no embedding will be computed.
         :param n_frame_min:
         :param n_frame_max:
         :param frame_interval:
         :param n_context_frame: number of contextual frames
         :param normalize_wp:
-        :param noisy_odom:
         :param rand_frame_interval:
         :param device:
         :param debug:
@@ -257,15 +255,15 @@ class DatasetDagger(DatasetBase):
                  tracker_server_addr=None,
                  **kwargs):
         """
-        :param tracker_weights_file:
-        :param jitter:
-        :param reach_overlap_thres:
-        :param divergence_thres:
+        :param tracker_weights_file: weights file for generating rollouts.
+        :param jitter: whether to jitter robot's initial pose.
+        :param reach_overlap_thres: overlap thresholds to determine if robot has reached the goal.
+        :param divergence_thres: distance threshold to determine if robot has deviated from
+                                 demonstration significantly.
         :param rand_rollout_sampling: True to randomly sample rollout samples.
         :param local_inference: if True will create the inference models directly.
                Useful with dataset_server.
         :param tracker_server_addr: if specified then will connect to this tracker server.
-        :param kwargs:
         """
         super(DatasetDagger, self).__init__(**kwargs)
         self.tracker_weights_file = tracker_weights_file
@@ -531,7 +529,7 @@ class DatasetDagger(DatasetBase):
 
         # The number of rollout samples can be larger than n_frame_max. We draw n_frame_max samples here.
         # Setting rand_rollout_sampling to True will draw random samples from the observations.
-        # Good: 1. can encoder longer sequence at no extra cost 2. data augmentation
+        # Good: 1. can encode longer sequence at no extra cost 2. data augmentation
         # Bad: 1. adjacent samples may be far apart which can mess up with the encoder
         # My experience is that setting rand_rollout_sampling to True improves generalization on
         # sequences longer than what are seen during training. For shorter sequences setting it
