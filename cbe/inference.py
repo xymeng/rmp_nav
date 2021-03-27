@@ -35,6 +35,9 @@ class TrackerBase(object):
         self.device = device
         self.h = None
 
+    def _as_tensor(self, data, dtype):
+        return torch.as_tensor(data, dtype=dtype).to(device=self.device, non_blocking=True)
+
     def _load(self, weights_file, device):
         state_dict = torch.load(weights_file, map_location='cpu')
         print('loaded %s' % weights_file)
@@ -94,7 +97,7 @@ class TrackerCBE(TrackerBase):
     def compute_traj_embedding(self, obs):
         nets = self.nets
         with torch.no_grad():
-            obs_th = torch.as_tensor(np.array(obs), dtype=torch.float, device=self.device)
+            obs_th = self._as_tensor(np.array(obs), torch.float)
             obs2_th = torch.cat([obs_th[0][None], obs_th[:-1]])
             obs_features = nets['embedding_img_pair_encoder'](obs_th, obs2_th)
             hs, _ = nets['embedding_recurrent'](obs_features.unsqueeze(1))
@@ -126,7 +129,7 @@ class TrackerCBE(TrackerBase):
 
         nets = self.nets
         with torch.no_grad():
-            ob_th = torch.as_tensor(np.array(ob), dtype=torch.float, device=self.device).unsqueeze(0)
+            ob_th = self._as_tensor(np.array(ob), torch.float).unsqueeze(0)
 
             last_ob = state.get('last_ob', None)
             if last_ob is None:
@@ -152,13 +155,11 @@ class TrackerCBE(TrackerBase):
     def _step(self, start, goal, traj_embedding, ob, h, init_start_feature, caller_id):
         nets = self.nets
         with torch.no_grad():
-            ob_th = torch.as_tensor(ob, dtype=torch.float, device=self.device).unsqueeze(0)
-            embedding_th = torch.as_tensor(traj_embedding,
-                                           dtype=torch.float, device=self.device).unsqueeze(0)
-            start_th = torch.as_tensor(start, dtype=torch.float, device=self.device).unsqueeze(0)
-            goal_th = torch.as_tensor(goal, dtype=torch.float, device=self.device).unsqueeze(0)
-            rollout_embedding = torch.as_tensor(self._embedding_encode_step(ob, caller_id),
-                                                device=self.device).unsqueeze(0)
+            ob_th = self._as_tensor(ob, torch.float).unsqueeze(0)
+            embedding_th = self._as_tensor(traj_embedding, torch.float).unsqueeze(0)
+            start_th = self._as_tensor(start, torch.float).unsqueeze(0)
+            goal_th = self._as_tensor(goal, torch.float).unsqueeze(0)
+            rollout_embedding = self._as_tensor(self._embedding_encode_step(ob, caller_id), torch.float).unsqueeze(0)
 
             if self.g.attractor:
                 if self.g.n_context_frame == 0:
@@ -224,17 +225,16 @@ class TrackerRPF(TrackerBase):
         # In RPF, the embedding is featurized observations
         nets = self.nets
         with torch.no_grad():
-            obs_th = torch.as_tensor(np.array(obs), dtype=torch.float, device=self.device)
+            obs_th = self._as_tensor(np.array(obs), torch.float)
             obs_features = nets['img_encoder'](obs_th)
             return obs_features.cpu().numpy()
 
     def _step(self, start, goal, traj_embedding, ob, h, caller_id):
         nets = self.nets
         with torch.no_grad():
-            _kw = {'dtype': torch.float32, 'device': self.device}
-            ob_th = torch.as_tensor(ob, **_kw).unsqueeze(0)
-            embedding_th = torch.as_tensor(traj_embedding, **_kw).unsqueeze(0)
-            idxs = torch.arange(len(traj_embedding), **_kw).unsqueeze(0)
+            ob_th = self._as_tensor(ob, torch.float).unsqueeze(0)
+            embedding_th = self._as_tensor(traj_embedding, torch.float).unsqueeze(0)
+            idxs = torch.arange(len(traj_embedding), dtype=torch.float, device=self.device).unsqueeze(0)
 
             state = self.state_cache.get(caller_id, dict())
 
