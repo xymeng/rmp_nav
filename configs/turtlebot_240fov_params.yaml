@@ -27,7 +27,6 @@ rmp_config: &rmp_cfg {}
 
 radius: 0.3
 rot_vel_limit: 1.0
-max_vel: 0.3
 
 control_points:
   x, y, is_boundary, affected_by_obstacle, affected_by_goal, normal, obstacle_accel_gain, goal_accel_gain, combined_accel_gain, obstacle_metric_scale, goal_metric_scale, rmp_config:

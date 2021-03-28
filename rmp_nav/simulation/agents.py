@@ -899,7 +899,6 @@ class TurtleBot(AgentLocal):
 
         dv, dtheta = accel_local
         dv = max(dv, 0.0)
-        max_vel = 0.5
 
         heading_dir = np.array([np.cos(self.heading), np.sin(self.heading)], np.float32)
 

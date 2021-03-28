@@ -12,7 +12,7 @@ from ..common.utils import get_project_root
 def turtlebot_240fov_rmp(**kwargs):
     params = Params(os.path.join(get_project_root(), 'configs/turtlebot_240fov_params.yaml'))
     solver_params = eval(params.get('solver_params', 'dict()'))
-
+    kwargs['max_vel'] = 0.5
     return agents.TurtleBotLocalLIDAR(
         params=params,
         n_depth_ray=50,
