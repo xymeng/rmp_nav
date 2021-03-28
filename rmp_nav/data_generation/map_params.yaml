@@ -1,0 +1,8 @@
+# Specify a list of values for each key.
+# When generating trajectories, the generator can read in this file
+# and choose a random set of parameters. This can increase the diversity
+# of generated trajectories.
+
+path_map_dilation: [2, 3, 4, 5, 6]
+path_map_weighted_dilation: [True]
+reachable_area_dilation: [1]
