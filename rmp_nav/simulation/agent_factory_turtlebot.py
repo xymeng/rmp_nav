@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from . import agents, agent_solvers, param_utils
+from . import agents, agent_solvers
 
 from .param_utils import Params
 from .agent_factory_common import add_agent
@@ -9,7 +9,7 @@ from ..common.utils import get_project_root
 
 
 @add_agent
-def classic_240fov_turtlebot(**kwargs):
+def turtlebot_240fov_rmp(**kwargs):
     params = Params(os.path.join(get_project_root(), 'configs/turtlebot_240fov_params.yaml'))
     solver_params = eval(params.get('solver_params', 'dict()'))
 

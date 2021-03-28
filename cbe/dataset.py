@@ -116,7 +116,6 @@ class DatasetBase(DatasetVisual):
                 continue
 
             start_idx = self.rng.randint(good_start_idx, len(traj) - frame_span + 1)
-            end_idx = start_idx + frame_span - 1
 
             frame_idxs = np.cumsum(fi) + start_idx
             samples = [traj[start_idx]]

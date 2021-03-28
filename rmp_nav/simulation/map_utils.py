@@ -6,7 +6,11 @@ import cv2
 from . import map_utils_cpp
 
 
-def a_star(obstacle_map, start_pos, goal_pos):
+def a_star(obstacle_map, start_pos, goal_pos, soft_obstacle_scale=0.0):
+    """
+    :param soft_obstacle_scale: this is also free area but with cost > 0. We treat it as soft obstacles to avoid
+                                generating paths too close to real obstacles.
+    """
     height, width = obstacle_map.shape
 
     # Convert to standard python types. This speeds up path finding significantly.
@@ -15,10 +19,8 @@ def a_star(obstacle_map, start_pos, goal_pos):
     goal_pos = tuple(goal_pos)
 
     def dist_to_goal(x, y):
-        # max(x, y) + (sqrt(2)-1)*min(x, y)
         xx = abs(x - goal_pos[0])
         yy = abs(y - goal_pos[1])
-        # return np.sqrt(xx**2 + yy**2)
         return max(xx, yy) + (math.sqrt(2) - 1) * min(xx, yy)
 
     open_dict = {start_pos: (None, 0, dist_to_goal(*start_pos))}
@@ -68,16 +70,16 @@ def a_star(obstacle_map, start_pos, goal_pos):
                 if 0 <= x2 < width and 0 <= y2 < height:
                     if (x2, y2) in close_dict:
                         continue
-                    if obstacle_map[y2][x2] > 0:
+                    if obstacle_map[y2][x2] == 255:
                         continue
                     if (x2, y2) not in open_dict:
                         # add and compute score
-                        g = g_score + math.sqrt(dx ** 2 + dy ** 2)
+                        g = g_score + math.sqrt(dx ** 2 + dy ** 2) + obstacle_map[y2][x2] * soft_obstacle_scale
                         open_dict[(x2, y2)] = (x, y), g, dist_to_goal(x2, y2)
                         parents[(x2, y2)] = (x, y)
                     else:
                         _, g0, h0 = open_dict[(x2, y2)]
-                        g = g_score + math.sqrt(dx ** 2 + dy ** 2)
+                        g = g_score + math.sqrt(dx ** 2 + dy ** 2) + obstacle_map[y2][x2] * soft_obstacle_scale
                         if g < g0:
                             open_dict[(x2, y2)] = (x, y), g, dist_to_goal(x2, y2)
                             parents[(x2, y2)] = (x, y)

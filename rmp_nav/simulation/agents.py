@@ -918,7 +918,6 @@ class TurtleBot(AgentLocal):
         self.angular_velocity = dtheta
         self.angular_velocity = np.clip(self.angular_velocity, -self.rot_vel_limit, self.rot_vel_limit)
         self.angular_accel = self.angular_velocity - prev_angular_vel
-        print('dtheta', dtheta)
 
     def collide(self, tolerance=0.075):
         global_pos = self.get_global_control_points_pos()
