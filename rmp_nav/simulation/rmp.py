@@ -10,7 +10,7 @@ def desired_accel_obstacle_vec(o, x, dx, gain=0.8, damping=1.0):
     d = np.linalg.norm(o - x, 2, axis=1)
     v = o - x
     vhat = v / (d[:, np.newaxis] + 0.001)
-    accel = -1. / (d[:, np.newaxis] / gain) * (.1 * vhat + damping * np.dot(vhat, dx)[:, np.newaxis] * vhat)
+    accel = -1. / (d[:, np.newaxis] / gain + 0.001) * (.1 * vhat + damping * np.dot(vhat, dx)[:, np.newaxis] * vhat)
     return accel
 
 
