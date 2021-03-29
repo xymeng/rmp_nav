@@ -918,9 +918,16 @@ class TurtleBot(AgentLocal):
         self.angular_velocity = np.clip(self.angular_velocity, -self.rot_vel_limit, self.rot_vel_limit)
         self.angular_accel = self.angular_velocity - prev_angular_vel
 
-    def collide(self, tolerance=0.075):
-        global_pos = self.get_global_control_points_pos()
+    def collide(self, tolerance=0.075, inflate=1.0):
+        """
+        :param inflate: inflate robot size.
+        :return:
+        """
+        global_pos = np.array(self.get_global_control_points_pos(), np.float32)
         x1, y1 = self.pos
+
+        global_pos = (global_pos - self.pos) * inflate + self.pos
+
         lines = np.concatenate([np.array([[x1, y1]] * len(global_pos), np.float32),
                                 np.array(global_pos, np.float32)], axis=1)
         return not all(self.map.no_touch_batch(lines, tolerance=tolerance))
