@@ -66,6 +66,15 @@ def _randomize_lighting(rng, img):
     return np.clip(img * contrast_factor + brightness_factor, 0.0, 1.0)
 
 
+def maybe_decode(s):
+    # This is to deal with the breaking change in how h5py 3.0 deals with
+    # strings.
+    if type(s) == str:
+        return s
+    else:
+        return s.decode('ascii')
+    
+
 class DatasetVisual(data.Dataset):
     def __init__(self, hd5_files, agent_name,
                  ignore_goal=False,
@@ -128,7 +137,7 @@ class DatasetVisual(data.Dataset):
         self.traj_id_to_dset_idx = {traj_id: dset_idx for dset_idx, traj_id in self.traj_ids}
 
         # Map (dataset_idx, traj_id) to its corresponding map
-        traj_id_map = {(dset_idx, traj_id): fds[dset_idx][traj_id].attrs['map'].decode('ascii')
+        traj_id_map = {(dset_idx, traj_id): maybe_decode(fds[dset_idx][traj_id].attrs['map'])
                        for dset_idx, traj_id in self.traj_ids}
 
         if maps is not None and len(maps) > 0:
@@ -262,7 +271,7 @@ class DatasetVisual(data.Dataset):
         dataset_idx, traj_id, sample_idx = self._locate_sample(idx)
 
         sample = self.fds[dataset_idx][traj_id][sample_idx]
-        map_name = self.fds[dataset_idx][traj_id].attrs['map'].decode('ascii')
+        map_name = maybe_decode(self.fds[dataset_idx][traj_id].attrs['map'])
         final_goal_global = self.fds[dataset_idx][traj_id][-1]['waypoint_global']
 
         return self._make(
