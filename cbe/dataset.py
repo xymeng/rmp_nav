@@ -12,7 +12,7 @@ msgpack_numpy.patch()
 from rmp_nav.common.math_utils import rotate_2d
 from rmp_nav.simulation.map_utils import cum_path_length
 from rmp_nav.simulation.gibson2_map import MakeGibson2Map
-from rmp_nav.neural.common.dataset import DatasetVisual, DatasetVisualGibson2
+from rmp_nav.neural.common.dataset import DatasetVisual, DatasetVisualGibson2, maybe_decode
 
 from .inference import Client as TrackerClient, find_tracker
 
@@ -95,7 +95,7 @@ class DatasetBase(DatasetVisual):
             # Then sample a starting point
             # Find good starting point
             traj = self.fds[dataset_idx][traj_id]
-            map_name = traj.attrs['map'].decode('ascii')
+            map_name = maybe_decode(traj.attrs['map'])
 
             traj = traj[()]  # This is important. Otherwise it's very slow.
 
