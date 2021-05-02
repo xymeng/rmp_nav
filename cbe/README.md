@@ -1,5 +1,7 @@
 # Learning Composable Behavior Embeddings for Long-horizon Visual Navigation
 
+Check out the project [website](https://homes.cs.washington.edu/~xiangyun/ral21/) for more information.
+
 ## Preparation
 
 ### Trajectory datasets
