@@ -1,6 +1,6 @@
 # RMP Navigation
 
-This repository contains related code for the following two papers:
+This repository contains related code for the following three papers:
 
 1. Neural Autonomous Navigation with Riemannian Motion Policy.
 
@@ -8,9 +8,15 @@ This repository contains related code for the following two papers:
 2. Scaling Local Control to Large Scale Topological Navigation.
 
    *Xiangyun Meng, Nathan Ratliff, Yu Xiang and Dieter Fox. ICRA 2020*
+
+3. Learning Composable Behavior Embeddings for Long-horizon Visual Navigation.
+
+   *Xiangyun Meng, Yu Xiang and Dieter Fox. Robotics and Automation Letters 2021.*
  
  
-The base code is written for paper 1. For paper 2, please check out the subdirectory [topological_nav](topological_nav).
+The base code is written for paper 1 and is also used by paper 2 and 3.
+- For paper 2, please check out the subdirectory [topological_nav](topological_nav).
+- For paper 3, please check out the subdirectory [cbe](cbe).
 
 ## Neural Autonomous Navigation with Riemannian Motion Policy 
 
