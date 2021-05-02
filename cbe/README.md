@@ -1,12 +1,34 @@
 # Learning Composable Behavior Embeddings for Long-horizon Visual Navigation
 
+## Preparation
+
+### Training and test trajectories
+Download the datasets and put them under `${RMP_NAV_ROOT}/data/gibson2/`. Keep the directory name.
+
+* [training trajectories] (to be released soon)
+* [test trajectories](https://drive.google.com/drive/folders/11l72WRrfG5EIiETPbdbF_es3AOfhGy4B?usp=sharing)
+  * You should have something like `${RMP_NAV_ROOT}/data/gibson2/pairwise_destination_testenv/*.hd5`
+
+
+### Gibson2 datasets
+**Make sure you have signed the agreement to use the official gibson datasets.**
+ 
+* Download the environments from [here](https://drive.google.com/file/d/117q9zpi1z11_NXDQ8EYoxmPw7jtrGeeo/view?usp=sharing). 
+
+* Move it to `${RMP_NAV_ROOT}/rmp_nav/gibson2`
+
+There are some differences between ours and the official gibson2 dataset:
+* We manually selected some of the largest environments in gibson2.
+* We generated our own floorplans which are cleaner than some of those in the official datasets.
+* We reduced the texture size to make them better fit into GPUs.
+
 ## Run the pretrained models
 
 Before you run any code, make sure you have run `source <project_root>/set_envs.sh`
 
 ### Download the pretrained models
-Download the pretrained models from [here](https://drive.google.com/drive/folders/1SWA9N71EOW9z62lHWnxZlKtX2nLOSJfL?usp=sharing).
-Put them inside `${RMP_NAV_ROOT}/models/cbe/`
+* Download the pretrained models from [here](https://drive.google.com/drive/folders/1SWA9N71EOW9z62lHWnxZlKtX2nLOSJfL?usp=sharing).
+* Put them inside `${RMP_NAV_ROOT}/models/cbe/`
 
 ### Test
 
@@ -63,3 +85,6 @@ An example command line to test the RPF baseline:
 ```
 python eval_tracker.py --model=rpf --n_frame=64 --start_idx=16 --nonoisy_actuation --jitter --noobstacle --obstacle_offset=0.0 --agent=minirccar_240fov_rmp_v2 --seed=12345 --env=testenvs --n_traj=500 --visualize --nosave_trace --nosave_screenshot
 ```
+
+## Training
+(Stay tuned)
