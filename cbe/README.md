@@ -2,7 +2,7 @@
 
 ## Preparation
 
-### Training and test trajectories
+### Trajectory datasets
 Download the datasets and put them under `${RMP_NAV_ROOT}/data/gibson2/`. Keep the directory name.
 
 * [training trajectories] (to be released soon)
@@ -15,7 +15,8 @@ Download the datasets and put them under `${RMP_NAV_ROOT}/data/gibson2/`. Keep t
  
 * Download the environments from [here](https://drive.google.com/file/d/117q9zpi1z11_NXDQ8EYoxmPw7jtrGeeo/view?usp=sharing). 
 
-* Move it to `${RMP_NAV_ROOT}/rmp_nav/gibson2`
+* Move them to `${RMP_NAV_ROOT}/rmp_nav/gibson2`
+  * You should have something like `${RMP_NAV_ROOT}/rmp_nav/gibson2/Aldrich/*`
 
 There are some differences between ours and the official gibson2 dataset:
 * We manually selected some of the largest environments in gibson2.
