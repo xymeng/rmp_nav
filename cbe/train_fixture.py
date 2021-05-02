@@ -271,14 +271,13 @@ def train_simple(nets, net_opts, dataset, dagger_dataset_constructor, vis, globa
             progress_loss = progress_loss * rollout_mask
             # Note that this is the mean of every data element, not per-batch mean
             progress_loss = torch.mean(progress_loss)
-
             loss = loss + progress_loss
 
             pred_waypoints = nets['waypoint_regressor'](hs).transpose(1, 0)
             # batch_size x max_traj_len x 2
             waypoint_loss = torch.norm(pred_waypoints - rollout_waypoints, p=2, dim=-1)
             waypoint_loss = torch.mean(waypoint_loss * rollout_mask)
-            loss = loss + torch.mean(waypoint_loss)
+            loss = loss + waypoint_loss
 
             if dagger_training:
                 if global_args['attractor']:
