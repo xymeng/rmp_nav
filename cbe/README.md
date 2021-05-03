@@ -11,9 +11,10 @@ Check out the project [website](https://homes.cs.washington.edu/~xiangyun/ral21/
 ### Trajectory datasets
 Download the datasets and put them under `${RMP_NAV_ROOT}/data/gibson2/`. Keep the directory name.
 
-* [training trajectories] (to be released soon)
+* [training trajectories](https://drive.google.com/file/d/1Lqgp-ulRUo-FleteD3yLaNK2Prx0uggv/view?usp=sharing)
+  * You should have something like `${RMP_NAV_ROOT}/data/gibson2/minirccar_agent_local_240fov_18env_slow/train_1.hd5`
 * [test trajectories](https://drive.google.com/drive/folders/11l72WRrfG5EIiETPbdbF_es3AOfhGy4B?usp=sharing)
-  * You should have something like `${RMP_NAV_ROOT}/data/gibson2/pairwise_destination_testenv/*.hd5`
+  * You should have something like `${RMP_NAV_ROOT}/data/gibson2/pairwise_destination_testenv/Calavo.hd5`
 
 
 ### Gibson2 datasets
