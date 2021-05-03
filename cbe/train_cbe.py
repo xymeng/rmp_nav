@@ -124,13 +124,8 @@ if __name__ == '__main__':
         def dagger_constructor(epoch):
             hosts = {
                 'localhost': 'tcp://localhost:5002',
-                # 'xiangyun@rse-bender.cs.washington.edu': 'tcp://rse-bender.cs.washington.edu:5002',
-                # 'xiangyun@grta.cs.washington.edu': 'tcp://grta.cs.washington.edu:5002',
-                # 'xiangyun@ava.cs.washington.edu': 'tcp://ava.cs.washington.edu:5002',
-                # 'xiangyun@nvidiadgx.cs.washington.edu': 'tcp://nvidiadgx.cs.washington.edu:5002',
             }
 
-            # hosts = ['xiangyun@rse-bender.cs.washington.edu', 'xiangyun@grta.cs.washington.edu']
             dagger_dataset = DatasetClient(sorted(hosts.values()), len(dataset))
 
             weights_file = '%s.%d' % (g.model_file, epoch)
