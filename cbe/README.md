@@ -4,6 +4,10 @@ Check out the project [website](https://homes.cs.washington.edu/~xiangyun/ral21/
 
 ## Preparation
 
+* Follow the [README](../README.md) in the project root to install all the dependencies.
+* Before you run any code, make sure you have run `source <project_root>/set_envs.sh`
+
+
 ### Trajectory datasets
 Download the datasets and put them under `${RMP_NAV_ROOT}/data/gibson2/`. Keep the directory name.
 
@@ -27,13 +31,11 @@ There are some differences between ours and the official gibson2 dataset:
 
 ## Run the pretrained models
 
-Before you run any code, make sure you have run `source <project_root>/set_envs.sh`
-
 ### Download the pretrained models
 * Download the pretrained models from [here](https://drive.google.com/drive/folders/1SWA9N71EOW9z62lHWnxZlKtX2nLOSJfL?usp=sharing).
 * Put them inside `${RMP_NAV_ROOT}/models/cbe/`
 
-### Test
+### Run the evaluator
 
 Launch the simulators for the test environments. Note that this will occupy the current terminal window.
 ```
