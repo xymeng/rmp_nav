@@ -124,6 +124,7 @@ if __name__ == '__main__':
         def dagger_constructor(epoch):
             hosts = {
                 'localhost': 'tcp://localhost:5002',
+                # If you have additional machines running the dataset server, you can put them here.
             }
 
             dagger_dataset = DatasetClient(sorted(hosts.values()), len(dataset))

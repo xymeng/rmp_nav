@@ -92,4 +92,64 @@ python eval_tracker.py --model=rpf --n_frame=64 --start_idx=16 --nonoisy_actuati
 ```
 
 ## Training
-(Stay tuned)
+
+### Launch the training environments:
+```shell
+cd ${RMP_NAV_ROOT}/tools
+python launch_sim_server_load_balancer_multi.py gibson2_18envs_gpu01_128.yaml 5000
+```
+If you have more GPUs, you can modify `gibson2_18envs_gpu01_128.yaml` to add more servers with additional GPU ids.
+You don't have to launch the training environments on the same machine used for training the network. You can launch
+them on a different machine but you need to specify a different persistent server config file. The default config
+file `configs/gibson_persistent_servers/local.yaml` points to the `localhost`, but you can change it to any host that
+runs the simulation environments.
+
+### Start the dataset server
+Start the dataset server for dagger training:
+```shell
+python -u dataset_server.py --addr='tcp://*:5002' --n_worker=18 \
+--param_file dataset_server_config/cbe.yaml \
+--devices='cuda:0' \ 
+--n_tracker=6 \
+--class_name=DatasetGibson2TrajsDagger
+```
+* Adjust `--n_worker`, `--devices`, `--n_tracker` to adapt to the number of available CPUs and GPUs.
+  * If you have 16 CPUs, you can set `--n_worker` to 16.
+  * `--devices` is a comma separated list of devices in pytorch format.    
+  * You can set `--n_tracker` to `2 * number of GPUs`.
+
+* If you have multiple machines, you can run one dataset server on each machine. This can significantly speed up dagger
+training. To do so, add the host names of the machines to `dagger_constructor()` in `train_cbe.py`
+
+* You also need to launch the training environments on each machine that runs the dataset server. This is not strictly
+  necessary, but would require configuring the persistent servers in the dataset server config file.
+  
+* Since during dagger training the main training machine will send network weights to the dataset server machines,
+  you need to set up ssh key authentication so that `scp` from the main training machine to the dataset server
+  machines does not ask for the password.
+
+### Train the network
+Change current working directory:
+```cd ${RMP_NAV_ROOT}/cbe/experiments```
+
+Launch the visdom server on a separate terminal window:
+```visdom -port=5001```
+
+Run the training script
+```shell
+OMP_NUM_THREADS=2 bash run_gibson2_18env.sh gibson2_18env/default default \
+--visdom_server='http://localhost' \
+--persistent_server_cfg ../../configs/gibson_persistent_servers/local.yaml \
+--batch_size=24 --n_dataset_worker=64 --log_interval=100 --save_interval=1
+```
+Modify `--persistent_server_cfg` if you have other machines running the gibson simulators.
+
+In general we do not recommend training the model with just two GPUs, because it would take a very long time.
+Here is a roughly guideline of how much GPU resource is required:
+* One GPU with > 10GB memory for training the network.
+* 4 to 8 GPUs for running gibson simulators and Dagger inference.
+* 20 CPUs for running robot simulation.
+
+If a single machine does not have sufficient resources, you can train the model on multiple machines. For example,
+* One machine for training the network.
+* Two machines with 4 GPUs each run the dataset servers and simulation environments.
