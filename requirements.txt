@@ -2,6 +2,8 @@ tqdm
 pyyaml
 pybind11
 h5py
+Cython
+h5py==2.9.0
 msgpack_numpy==0.4.4.2
 future==0.17.1
 parse==1.11.1
@@ -15,3 +17,5 @@ python_gflags==3.1.2
 msgpack_python==0.5.6
 pyzmq==18.1.0
 visdom==0.1.8.9
+pycairo==1.11.1
+gibson2==1.0.1

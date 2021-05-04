@@ -77,7 +77,7 @@ Additional requirements that you may already have:
 
 - `pytorch` and `torchvision`. You may install via pip: `pip install torch torchvision`
 
-- `opencv` You may install via pip: `pip install python-opencv` 
+- `opencv` You may install via pip: `pip install opencv-python` 
 
 - `wxPython` You could install it via pip, but you may get compilation errors. There may exist a
 prebuilt [pip wheel](https://wxpython.org/pages/downloads/index.html) for your system.
